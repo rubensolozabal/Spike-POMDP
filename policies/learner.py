@@ -366,12 +366,12 @@ class Learner:
                 self._n_rollouts_total,
             )
 
-            if isinstance(self.num_updates_per_iter, float):
-                # update: pomdp task updates more for the first iter_
-                train_stats = self.update(
-                    int(self._n_env_steps_total * self.num_updates_per_iter)
-                )
-                self.log_train_stats(train_stats)
+            # if isinstance(self.num_updates_per_iter, float):                      # r.s.o
+            #     # update: pomdp task updates more for the first iter_
+            #     train_stats = self.update(
+            #         int(self._n_env_steps_total * self.num_updates_per_iter)
+            #     )
+            #     self.log_train_stats(train_stats)
 
         last_eval_num_iters = 0
         while self._n_env_steps_total < self.n_env_steps_total:

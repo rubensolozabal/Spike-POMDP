@@ -6,7 +6,9 @@ from .base import RLAlgorithmBase
 from policies.models.actor import CategoricalPolicy
 from torchkit.networks import FlattenMlp
 import torchkit.pytorch_utils as ptu
+import torch.nn.functional as F
 
+from torchkit.snn_layer import LIF
 
 class SACD(RLAlgorithmBase):
     name = "sacd"
@@ -44,15 +46,16 @@ class SACD(RLAlgorithmBase):
         )
 
     @staticmethod
-    def build_critic(hidden_sizes, input_size=None, obs_dim=None, action_dim=None):
+    def build_critic(hidden_sizes, input_size=None, obs_dim=None, action_dim=None, hidden_activation=F.relu):
         assert action_dim is not None
         if obs_dim is not None:
             input_size = obs_dim
+
         qf1 = FlattenMlp(
-            input_size=input_size, output_size=action_dim, hidden_sizes=hidden_sizes
+            input_size=input_size, output_size=action_dim, hidden_sizes=hidden_sizes, hidden_activation=hidden_activation        #r.s.o
         )
         qf2 = FlattenMlp(
-            input_size=input_size, output_size=action_dim, hidden_sizes=hidden_sizes
+            input_size=input_size, output_size=action_dim, hidden_sizes=hidden_sizes, hidden_activation=hidden_activation        #r.s.o
         )
         return qf1, qf2
 
@@ -169,8 +172,8 @@ class SACD(RLAlgorithmBase):
             )  # (T+1, B, A)
 
         if markov_critic:
-            q1 = critic[0](observs)
-            q2 = critic[1](observs)
+            q1 = critic[0](observs)#.detach()    #r.s.o detach
+            q2 = critic[1](observs)#.detach()    #r.s.o detach
         else:
             q1, q2 = critic(
                 prev_actions=actions,

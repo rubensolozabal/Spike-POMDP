@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os, sys
 import glob
-from scripts.constants import *
+from scripts.myconstants import *
 from absl import flags
 
 FLAGS = flags.FLAGS
@@ -87,7 +87,7 @@ for path in file_paths:
             result[k] = v
     else:
         # specialized or other methods
-        specialized_name = trial_str_list[0]
+        specialized_name = trial_str_list[1]
         assert specialized_name in specialized_tags
         result[method_tag] = specialized_name
         for k, v in specialized_tags[specialized_name].items():

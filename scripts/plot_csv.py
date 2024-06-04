@@ -8,7 +8,7 @@ sns.set()
 import pandas as pd
 import numpy as np
 import os, sys
-from scripts.constants import *
+from scripts.myconstants import *
 from absl import flags
 
 FLAGS = flags.FLAGS

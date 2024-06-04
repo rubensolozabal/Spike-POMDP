@@ -11,6 +11,7 @@ from policies.models import *
 from policies.rl import RL_ALGORITHMS
 import torchkit.pytorch_utils as ptu
 
+from torchkit.snn_layer import LIF
 
 class ModelFreeOffPolicy_MLP(nn.Module):
     """
@@ -44,11 +45,22 @@ class ModelFreeOffPolicy_MLP(nn.Module):
 
         self.algo = RL_ALGORITHMS[algo_name](**kwargs[algo_name], action_dim=action_dim)
 
+        # Get hidden activation - r.s.o
+        if kwargs.get("hidden_activation") is None:
+            hidden_activation = F.relu
+        else:
+            hidden_activation = []
+            for i, value in enumerate(kwargs["hidden_activation"]):
+                f_call = eval(value)
+                hidden_activation.append(f_call)
+
+
         # Markov q networks
         self.qf1, self.qf2 = self.algo.build_critic(
             obs_dim=obs_dim,
             hidden_sizes=dqn_layers,
             action_dim=action_dim,
+            hidden_activation=hidden_activation      #r.s.o
         )
         self.qf1_optim = Adam(self.qf1.parameters(), lr=lr)
         self.qf2_optim = Adam(self.qf2.parameters(), lr=lr)
@@ -61,6 +73,7 @@ class ModelFreeOffPolicy_MLP(nn.Module):
             input_size=obs_dim,
             action_dim=action_dim,
             hidden_sizes=policy_layers,
+            hidden_activation=hidden_activation      #r.s.o
         )
         self.policy_optim = Adam(self.policy.parameters(), lr=lr)
         # target network
@@ -105,6 +118,7 @@ class ModelFreeOffPolicy_MLP(nn.Module):
         qf2_loss.backward()
         self.qf1_optim.step()
         self.qf2_optim.step()
+
 
         # soft update
         self.soft_target_update()

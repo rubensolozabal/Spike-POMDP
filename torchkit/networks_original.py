@@ -11,8 +11,6 @@ from torch.nn import functional as F
 from torchkit import pytorch_utils as ptu
 from torchkit.core import PyTorchModule
 from torchkit.modules import LayerNorm
-from torchkit.snn_layer import LIF
-from torchkit.snn_layer import ExpandTemporalDim
 
 relu_name = "relu"
 elu_name = "elu"
@@ -20,7 +18,6 @@ ACTIVATIONS = {
     relu_name: nn.ReLU,
     elu_name: nn.ELU,
 }
-
 
 
 class Mlp(PyTorchModule):
@@ -72,34 +69,13 @@ class Mlp(PyTorchModule):
 
     def forward(self, input, return_preactivations=False):
         h = input
-
-        # Repear the input for LIF
-        if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF):
-                h = h.repeat(4,1)
-
         for i, fc in enumerate(self.fcs):
             h = fc(h)
             if self.layer_norm and i < len(self.fcs) - 1:
                 h = self.layer_norms[i](h)
-
-            if isinstance(self.hidden_activation, list):    #r.s.o
-                h = self.hidden_activation[i](h)
-            else:
-                h = self.hidden_activation(h)
+            h = self.hidden_activation(h)
         preactivation = self.last_fc(h)
         output = self.output_activation(preactivation)
-
-
-        # Expand and sum the spikes
-        if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF):
-                # output = self.hidden_activation.expand(output)
-                output = ExpandTemporalDim(4)(output)
-                # Sum over axis 0
-                output = output.sum(axis=0)
-
-
         if return_preactivations:
             return output, preactivation
         else:
