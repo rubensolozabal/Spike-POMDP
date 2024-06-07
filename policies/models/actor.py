@@ -7,6 +7,8 @@ from torch.distributions import Categorical
 from torchkit.distributions import TanhNormal
 from torchkit.networks import Mlp
 
+from torchkit.snn_layer import LIF
+from torchkit.snn_layer import ExpandTemporalDim
 
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
@@ -136,9 +138,34 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         :param return_log_prob: If True, return a sample and its log probability
         """
         h = self.preprocess(obs)
-        for fc in self.fcs:
-            h = self.hidden_activation(fc(h))
+
+        # Repear the input for LIF #r.s.o
+        if isinstance(self.hidden_activation, list):       
+            if isinstance(self.hidden_activation[0], LIF):
+                h = h.repeat(4,1)
+
+        for i, fc in enumerate(self.fcs):
+
+            if isinstance(self.hidden_activation, list):    #r.s.o
+                h = self.hidden_activation[i](fc(h))
+            else:
+                h = self.hidden_activation(fc(h))
+
+            # h = self.hidden_activation(fc(h))          # original
+
+
+        # Expand and sum the spikes #r.s.o
+        if isinstance(self.hidden_activation, list):
+            if isinstance(self.hidden_activation[0], LIF):
+                h = ExpandTemporalDim(4)(h)
+                # Sum over axis 0
+                h = h.sum(axis=0)
+
+
         mean = self.last_fc(h)
+
+
+
         if self.std is None:
             log_std = self.last_fc_log_std(h)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)

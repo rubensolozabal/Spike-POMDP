@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "cartpole mlp spike",
+            "name": "cartpole_f mlp spike",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
@@ -13,7 +13,7 @@
             "args": ["--cfg","configs/pomdp/cartpole/f/mlp_spike.yml", "--cuda","0"]
         },
         {
-            "name": "cartpole mlp",
+            "name": "cartpole_f mlp",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
@@ -21,7 +21,7 @@
             "args": ["--cfg","configs/pomdp/cartpole/f/mlp.yml", "--cuda","0"]
         },
         {
-            "name": "cartpole rnn",
+            "name": "cartpole_v rnn",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
@@ -29,7 +29,7 @@
             "args": ["--cfg","configs/pomdp/cartpole/v/rnn.yml", "--cuda","0"]
         },
         {
-            "name": "pendulum rnn",
+            "name": "pendulum_v rnn",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
@@ -37,12 +37,36 @@
             "args": ["--cfg","configs/pomdp/pendulum/v/rnn.yml", "--cuda","0"]
         },
         {
+            "name": "ant_p mlp",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/ant_blt/p/mlp.yml", "--algo","sac", "--cuda","0"]
+        },
+        {
+            "name": "ant_p mlp spike",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/ant_blt/p/mlp_spike.yml", "--algo","sac", "--cuda","0"]
+        },
+        {
+            "name": "ant_p rnn",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/ant_blt/p/rnn.yml", "--algo","sac", "--cuda","0"]
+        },
+        {
             "name": "merge_csv",
             "type": "debugpy",
             "request": "launch",
             "program": "scripts/merge_csv.py",
             "console": "integratedTerminal",
-            "args": ["--base_path","results/logs/pomdp/CartPole/"]
+            "args": ["--base_path","results/logs/pomdp/AntBLT/"]
         }, 
         {
             "name": "plot_csv",
@@ -50,7 +74,8 @@
             "request": "launch",
             "program": "scripts/plot_csv.py",
             "console": "integratedTerminal",
-            "args": ["--csv_path","results/data/pomdp/CartPole/final.csv", "--best_variant", "sacd-lstm-1000-oar-separate"]
+            "args": ["--csv_path","results/data/pomdp/AntBLT/final.csv", "--best_variant", "sac-gru-64-oar-separate"]
+            // "args": ["--csv_path","results/data/pomdp/AntBLT/final.csv", "--best_variant", "sacd-lstm-1000-oar-separate"]
         }
     ]
 }

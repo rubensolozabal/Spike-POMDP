@@ -25,6 +25,8 @@ from torchkit import pytorch_utils as ptu
 from utils import evaluation as utl_eval
 from utils import logger
 
+import gc #r.s.o
+gc.disable()
 
 class Learner:
     def __init__(self, env_args, train_args, eval_args, policy_args, seed, **kwargs):
@@ -403,6 +405,10 @@ class Learner:
                 ):
                     # save models in later training stage
                     self.save_model(current_num_iters, perf)
+
+            # Garbage collection r.s.o
+            # gc.collect()
+
         self.save_model(current_num_iters, perf)
 
     @torch.no_grad()
@@ -552,6 +558,7 @@ class Learner:
     def update(self, num_updates):
         rl_losses_agg = {}
         for update in range(num_updates):
+            # print(f"RL update {update}/{num_updates}")#r.s.o
             # sample random RL batch: in transitions
             batch = self.sample_rl_batch(self.batch_size)
 

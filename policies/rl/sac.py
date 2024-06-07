@@ -6,6 +6,10 @@ from policies.models.actor import TanhGaussianPolicy
 from torchkit.networks import FlattenMlp
 import torchkit.pytorch_utils as ptu
 
+import torch.nn.functional as F
+
+from torchkit.snn_layer import LIF
+
 
 class SAC(RLAlgorithmBase):
     name = "sac"
@@ -58,14 +62,14 @@ class SAC(RLAlgorithmBase):
         )
 
     @staticmethod
-    def build_critic(hidden_sizes, input_size=None, obs_dim=None, action_dim=None):
+    def build_critic(hidden_sizes, input_size=None, obs_dim=None, action_dim=None, hidden_activation=F.relu):       #r.s.o: add hidden activation
         if obs_dim is not None and action_dim is not None:
             input_size = obs_dim + action_dim
         qf1 = FlattenMlp(
-            input_size=input_size, output_size=1, hidden_sizes=hidden_sizes
+            input_size=input_size, output_size=1, hidden_sizes=hidden_sizes, hidden_activation=hidden_activation
         )
         qf2 = FlattenMlp(
-            input_size=input_size, output_size=1, hidden_sizes=hidden_sizes
+            input_size=input_size, output_size=1, hidden_sizes=hidden_sizes, hidden_activation=hidden_activation
         )
         return qf1, qf2
 
