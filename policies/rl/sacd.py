@@ -106,7 +106,7 @@ class SACD(RLAlgorithmBase):
                     prev_actions=actions,
                     rewards=rewards,
                     observs=observs,
-                    current_actions=new_probs,
+                    current_actions=new_probs,      # r.s.o, i think this is wrong
                 )  # (T+1, B, A)
 
             min_next_q_target = torch.min(next_q1, next_q2)

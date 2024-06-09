@@ -222,6 +222,10 @@ class Learner:
             agent_class = AGENT_CLASSES["Policy_MLP"]
             rnn_encoder_type = None
             assert separate == True
+        elif seq_model == "snn":
+            agent_class = AGENT_CLASSES["Policy_Separate_SNN"]
+            rnn_encoder_type = None
+            assert separate == True
         elif "-mlp" in seq_model:
             agent_class = AGENT_CLASSES["Policy_RNN_MLP"]
             rnn_encoder_type = seq_model.split("-")[0]
@@ -430,7 +434,7 @@ class Learner:
             obs = obs.reshape(1, obs.shape[-1])
             done_rollout = False
 
-            if self.agent_arch in [AGENT_ARCHS.Memory, AGENT_ARCHS.Memory_Markov]:
+            if self.agent_arch in [AGENT_ARCHS.Memory, AGENT_ARCHS.Memory_Markov, AGENT_ARCHS.SNN]:
                 # temporary storage
                 obs_list, act_list, rew_list, next_obs_list, term_list = (
                     [],
@@ -444,6 +448,9 @@ class Learner:
                 # get hidden state at timestep=0, None for markov
                 # NOTE: assume initial reward = 0.0 (no need to clip)
                 action, reward, internal_state = self.agent.get_initial_info()
+
+            if self.agent_arch == AGENT_ARCHS.SNN:
+                internal_state = self.agent.get_initial_info()
 
             while not done_rollout:
                 if random_actions:
@@ -462,6 +469,12 @@ class Learner:
                             prev_internal_state=internal_state,
                             prev_action=action,
                             reward=reward,
+                            obs=obs,
+                            deterministic=False,
+                        )
+                    elif self.agent_arch == AGENT_ARCHS.SNN:
+                        (action, _, _, _), internal_state = self.agent.act(
+                            prev_internal_state=internal_state,
                             obs=obs,
                             deterministic=False,
                         )

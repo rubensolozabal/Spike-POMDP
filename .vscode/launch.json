@@ -29,6 +29,14 @@
             "args": ["--cfg","configs/pomdp/cartpole/v/rnn.yml", "--cuda","0"]
         },
         {
+            "name": "cartpole_v snn",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/cartpole/v/snn.yml", "--cuda","0"]
+        },
+        {
             "name": "pendulum_v rnn",
             "type": "debugpy",
             "request": "launch",

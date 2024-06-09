@@ -5,6 +5,7 @@ pomdp_baselines.egg-info/SOURCES.txt
 pomdp_baselines.egg-info/dependency_links.txt
 pomdp_baselines.egg-info/top_level.txt
 scripts/__init__.py
+scripts/constants.py
 scripts/merge_csv.py
 scripts/myconstants.py
 scripts/plot_csv.py

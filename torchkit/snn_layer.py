@@ -42,6 +42,8 @@ class ZIF(torch.autograd.Function):
         return grad_input, None
 
 
+
+
 class LIF(nn.Module):
     def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
         super(LIF, self).__init__()
@@ -53,13 +55,18 @@ class LIF(nn.Module):
         self.expand = ExpandTemporalDim(T)
         self.merge = MergeTemporalDim(T)
         self.T = T
-        # self.mem = 0.
+        self.init_mem = 0.
+        self.current_mem = 0.
 
-    def forward(self, x):        
+    def forward(self, x, mem=None):        
         # thre = self.thresh.data        
         x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
         spike_pot = []
-        mem = 0.
+        if mem is not None:
+            mem = mem
+        else:
+            mem = self.init_mem
+
         for t in range(self.T):
             
             mem = self.tau*mem + x[t, ...] 
@@ -75,5 +82,48 @@ class LIF(nn.Module):
 
         x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
         x = self.merge(x)        
+
+        # Store current state
+        self.current_mem = mem.detach().clone()
+
         return x
+
+
+
+
+# class LIF(nn.Module):
+#     def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
+#         super(LIF, self).__init__()
+#         self.act = ZIF.apply        
+#         # self.thresh = nn.Parameter(torch.tensor([thresh], device='cuda'), requires_grad=False, )
+#         self.thresh = torch.tensor([thresh], device='cuda', requires_grad=False)
+#         self.tau = tau
+#         self.gama = gama
+#         self.expand = ExpandTemporalDim(T)
+#         self.merge = MergeTemporalDim(T)
+#         self.T = T
+#         self.mem = 0.
+
+#     def forward(self, x):        
+#         # thre = self.thresh.data        
+#         x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
+#         spike_pot = []
+#         mem = 0.
+#         for t in range(self.T):
+            
+#             mem = self.tau*mem + x[t, ...] 
+#             temp_spike = self.act(mem-self.thresh, self.gama)
+#             spike = temp_spike * self.thresh # spike [N, C, H, W]
+            
+#             ### Soft reset ###
+#             # mem = mem - spike
+#             ### Hard reset ###
+#             mem = mem*(1.-spike)
+
+#             spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+
+#         x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
+#         x = self.merge(x)        
+#         return x
+    
 

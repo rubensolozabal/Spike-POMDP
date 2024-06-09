@@ -2,12 +2,14 @@ from .policy_mlp import ModelFreeOffPolicy_MLP as Policy_MLP
 from .policy_rnn_mlp import ModelFreeOffPolicy_RNN_MLP as Policy_RNN_MLP
 from .policy_rnn import ModelFreeOffPolicy_Separate_RNN as Policy_Separate_RNN
 from .policy_rnn_shared import ModelFreeOffPolicy_Shared_RNN as Policy_Shared_RNN
+from .policy_snn import ModelFreeOffPolicy_Separate_SNN as Policy_Separate_SNN
 
 AGENT_CLASSES = {
     "Policy_MLP": Policy_MLP,
     "Policy_RNN_MLP": Policy_RNN_MLP,
     "Policy_Separate_RNN": Policy_Separate_RNN,
     "Policy_Shared_RNN": Policy_Shared_RNN,
+    "Policy_Separate_SNN": Policy_Separate_SNN, # r.s.o
 }
 
 
@@ -21,3 +23,4 @@ class AGENT_ARCHS(str, Enum):
     Markov = Policy_MLP.ARCH
     Memory_Markov = Policy_RNN_MLP.ARCH
     Memory = Policy_Separate_RNN.ARCH
+    SNN = Policy_Separate_SNN.ARCH # r.s.o
