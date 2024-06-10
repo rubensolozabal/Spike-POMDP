@@ -536,7 +536,7 @@ class Learner:
                 # set: obs <- next_obs
                 obs = next_obs.clone()
 
-            if self.agent_arch in [AGENT_ARCHS.Memory, AGENT_ARCHS.Memory_Markov]:
+            if self.agent_arch in [AGENT_ARCHS.Memory, AGENT_ARCHS.Memory_Markov, AGENT_ARCHS.SNN]:
                 # add collected sequence to buffer
                 act_buffer = torch.cat(act_list, dim=0)  # (L, dim)
                 if not self.act_continuous:
@@ -623,10 +623,14 @@ class Learner:
             if self.agent_arch == AGENT_ARCHS.Memory:
                 # assume initial reward = 0.0
                 action, reward, internal_state = self.agent.get_initial_info()
+            
+            if self.agent_arch == AGENT_ARCHS.SNN:
+                internal_state = self.agent.get_initial_info()
 
             for episode_idx in range(num_episodes):
                 running_reward = 0.0
                 for _ in range(num_steps_per_episode):
+
                     if self.agent_arch == AGENT_ARCHS.Memory:
                         (action, _, _, _), internal_state = self.agent.act(
                             prev_internal_state=internal_state,
@@ -635,10 +639,14 @@ class Learner:
                             obs=obs,
                             deterministic=deterministic,
                         )
-                    else:
-                        action, _, _, _ = self.agent.act(
-                            obs, deterministic=deterministic
+                    elif self.agent_arch == AGENT_ARCHS.SNN:   # r.s.o
+                        (action, _, _, _), internal_state = self.agent.act(
+                            prev_internal_state=internal_state,
+                            obs=obs,
+                            deterministic=deterministic,
                         )
+                    else:
+                        action, _, _, _ = self.agent.act(obs, deterministic=deterministic)
 
                     # observe reward and next obs
                     next_obs, reward, done, info = utl.env_step(

@@ -45,13 +45,13 @@ class MarkovPolicyBase(Mlp):
         # then register image encoder
         self.image_encoder = image_encoder  # None or nn.Module
 
-    def forward(self, obs):
+    def forward(self, obs, hidden_state=None):
         """
         :param obs: Observation, usually 2D (B, dim), but maybe 3D (T, B, dim)
         return action (*, dim)
         """
         x = self.preprocess(obs)
-        return super().forward(x)
+        return super().forward(x, hidden_state)
 
     def preprocess(self, obs):
         x = obs
@@ -217,6 +217,7 @@ class CategoricalPolicy(MarkovPolicyBase):
     def forward(
         self,
         obs,
+        hidden_state=None,
         deterministic=False,
         return_log_prob=False,
     ):
@@ -226,7 +227,7 @@ class CategoricalPolicy(MarkovPolicyBase):
         :param return_log_prob: If True, return a sample and its log probability
         return: action (*, B, A), prob (*, B, A), log_prob (*, B, A)
         """
-        action_logits = super().forward(obs)  # (*, A)
+        action_logits = super().forward(obs, hidden_state)  # (*, A)
 
         prob, log_prob = None, None
         if deterministic:

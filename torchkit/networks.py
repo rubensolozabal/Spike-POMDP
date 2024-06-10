@@ -70,13 +70,16 @@ class Mlp(PyTorchModule):
         self.last_fc.weight.data.uniform_(-init_w, init_w)
         self.last_fc.bias.data.uniform_(-init_w, init_w)
 
-    def forward(self, input, return_preactivations=False):
+    def forward(self, input, hidden_state=None, return_preactivations=False):
         h = input
 
         # Repear the input for LIF
         if isinstance(self.hidden_activation, list):
             if isinstance(self.hidden_activation[0], LIF):
-                h = h.repeat(4,1)
+                if len(input.shape) == 2:   #[BS, dim]
+                    h = h.repeat(4,1)
+                else:
+                    h = h.repeat(1,4,1)     #[episode, BS, dim]
 
         for i, fc in enumerate(self.fcs):
             h = fc(h)
@@ -84,9 +87,13 @@ class Mlp(PyTorchModule):
                 h = self.layer_norms[i](h)
 
             if isinstance(self.hidden_activation, list):    #r.s.o
-                h = self.hidden_activation[i](h)
+                if hidden_state is not None:
+                    h = self.hidden_activation[i](h, hidden_state[i])
+                else:
+                    h = self.hidden_activation[i](h)
             else:
                 h = self.hidden_activation(h)
+
         preactivation = self.last_fc(h)
         output = self.output_activation(preactivation)
 
@@ -94,10 +101,14 @@ class Mlp(PyTorchModule):
         # Expand and sum the spikes
         if isinstance(self.hidden_activation, list):
             if isinstance(self.hidden_activation[0], LIF):
-                # output = self.hidden_activation.expand(output)
-                output = ExpandTemporalDim(4)(output)
-                # Sum over axis 0
-                output = output.sum(axis=0)
+                if len(input.shape) == 2: 
+                    # output = self.hidden_activation.expand(output)
+                    output = ExpandTemporalDim(4)(output)
+                    # Sum over axis 0
+                    output = output.sum(axis=0)
+                else:
+                    output = ExpandTemporalDim(4,1)(output)
+                    output = output.sum(axis=1)
 
 
         if return_preactivations:

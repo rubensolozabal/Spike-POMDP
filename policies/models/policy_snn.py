@@ -14,16 +14,14 @@ from policies.rl import RL_ALGORITHMS
 import torchkit.pytorch_utils as ptu
 
 from torchkit.snn_layer import LIF
+from policies.models.snn_actor import Actor_SNN
 
 
 class ModelFreeOffPolicy_Separate_SNN(nn.Module):
-    """Recommended Architecture
-    Recurrent Actor and Recurrent Critic with separate RNNs
-    """
 
     ARCH = "snn"
-    Markov_Actor = False
-    Markov_Critic = False
+    type_actor = "snn"
+    type_critic = "snn"
 
     def __init__(
         self,
@@ -70,33 +68,24 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
         self.qf2_target = copy.deepcopy(self.qf2)
 
         # Markov Actor
-        self.policy = self.algo.build_actor(
-            input_size=obs_dim,
+        self.actor = Actor_SNN(
+            obs_dim=obs_dim,
             action_dim=action_dim,
-            hidden_sizes=policy_layers,
+            algo=self.algo,
+            policy_layers=policy_layers,
             hidden_activation=hidden_activation      #r.s.o
         )
-        self.policy_optim = Adam(self.policy.parameters(), lr=lr)
+        self.actor_optim = Adam(self.actor.parameters(), lr=lr)
         # target network
-        self.policy_target = copy.deepcopy(self.policy)
+        self.actor_target = copy.deepcopy(self.actor)
 
     @torch.no_grad()
-    def act(self, obs, deterministic=False, return_log_prob=False):
-
-        a, prob, log_prob, _ = self.algo.select_action(
-            actor=self.policy,
-            observ=obs,
-            deterministic=deterministic,
-            return_log_prob=return_log_prob,
-        )
-
-        current_state = [a.mem for a in self.policy.hidden_activation]
-
-        return (a, prob, log_prob, _), current_state
+    def act(self, obs, prev_internal_state=None, deterministic=False, return_log_prob=False):
+        return self.actor.act(obs, prev_internal_state, deterministic, return_log_prob)
     
     @torch.no_grad()
     def get_initial_info(self):
-        return self.policy.hidden_activation[0].init_mem
+        return self.actor.get_initial_info()
     
     def update(self, batch):
         observs, next_observs = batch["obs"], batch["obs2"]  # (B, dim)
@@ -104,10 +93,10 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
 
         ### 1. Critic loss
         (q1_pred, q2_pred), q_target = self.algo.critic_loss(
-            markov_actor=self.Markov_Actor,
-            markov_critic=self.Markov_Critic,
-            actor=self.policy,
-            actor_target=self.policy_target,
+            type_actor=self.type_actor,
+            type_critic=self.type_critic,
+            actor=self.actor,
+            actor_target=self.actor_target,
             critic=(self.qf1, self.qf2),
             critic_target=(self.qf1_target, self.qf2_target),
             observs=observs,
@@ -134,26 +123,26 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
         self.soft_target_update()
 
         ### 2. Actor loss
-        policy_loss, log_probs = self.algo.actor_loss(
-            markov_actor=self.Markov_Actor,
-            markov_critic=self.Markov_Critic,
-            actor=self.policy,
-            actor_target=self.policy_target,
+        actor_loss, log_probs = self.algo.actor_loss(
+            type_actor=self.type_actor,
+            type_critic=self.type_critic,
+            actor=self.actor,
+            actor_target=self.actor_target,
             critic=(self.qf1, self.qf2),
             critic_target=(self.qf1_target, self.qf2_target),
             observs=observs,
         )
-        policy_loss = policy_loss.mean()
+        actor_loss = actor_loss.mean()
 
         # update policy network
-        self.policy_optim.zero_grad()
-        policy_loss.backward()
-        self.policy_optim.step()
+        self.actor_optim.zero_grad()
+        actor_loss.backward()
+        self.actor_optim.step()
 
         outputs = {
             "qf1_loss": qf1_loss.item(),
             "qf2_loss": qf2_loss.item(),
-            "policy_loss": policy_loss.item(),
+            "policy_loss": actor_loss.item(),
         }
 
         # update others like alpha
@@ -169,4 +158,4 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
         ptu.soft_update_from_to(self.qf1, self.qf1_target, self.tau)
         ptu.soft_update_from_to(self.qf2, self.qf2_target, self.tau)
         if self.algo.use_target_actor:
-            ptu.soft_update_from_to(self.policy, self.policy_target, self.tau)
+            ptu.soft_update_from_to(self.actor, self.actor_target, self.tau)

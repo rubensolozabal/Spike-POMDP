@@ -15,14 +15,17 @@ class MergeTemporalDim(nn.Module):
         return x_seq.flatten(0, 1).contiguous() # x_seq shape [T, N, C, H, W] -> [T * N, C, H, W]. syntax of flatten, For example, if you have a tensor of shape [a, b, c, d], after applying flatten(0, 1), the shape will become [a*b, c, d]. It essentially merges the first two dimensions.
 
 class ExpandTemporalDim(nn.Module):
-    def __init__(self, T):
+    def __init__(self, T, dim=0):
         super().__init__()
         self.T = T
+        self.dim = dim
 
-    def forward(self, x_seq: torch.Tensor): # x_seq: [T * N, C, H, W], i.e., [128, 64, 224, 224]
-        y_shape = [self.T, int(x_seq.shape[0]/self.T)] # y_shape now is [T, N] and it is going to be [T, N, C, H, W] next step
-        y_shape.extend(x_seq.shape[1:]) # y_shape, [T, N, C, H, W], [128, 1, 64, 224, 224];
-        return x_seq.view(y_shape) # x_seq shape [T, N, C, H, W]
+    def forward(self, x_seq: torch.Tensor):
+        y_shape = []
+        y_shape.extend(x_seq.shape[:self.dim])
+        y_shape.extend([self.T, int(x_seq.shape[self.dim]/self.T)])
+        y_shape.extend(x_seq.shape[self.dim+1:]) 
+        return x_seq.view(y_shape) 
 
 class ZIF(torch.autograd.Function):
     @staticmethod
@@ -60,31 +63,64 @@ class LIF(nn.Module):
 
     def forward(self, x, mem=None):        
         # thre = self.thresh.data        
-        x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
-        spike_pot = []
+        
         if mem is not None:
             mem = mem
         else:
             mem = self.init_mem
 
-        for t in range(self.T):
-            
-            mem = self.tau*mem + x[t, ...] 
-            temp_spike = self.act(mem-self.thresh, self.gama)
-            spike = temp_spike * self.thresh # spike [N, C, H, W]
-            
-            ### Soft reset ###
-            # mem = mem - spike
-            ### Hard reset ###
-            mem = mem*(1.-spike)
+        if len(x.shape) == 3:
+            steps = x.shape[0] # [steps=200, BS=32 * T=4, embed]
+            episode_spike_pot = []
+            for step in range(steps):
 
-            spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+                x_step = x[step, ...]
+                x_step = self.expand(x_step) # [T * N, C, H, W] -> [T, N, C, H, W]
 
-        x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
-        x = self.merge(x)        
+                spike_pot = []
+                for t in range(self.T):
+                    
+                    mem = self.tau*mem + x_step[t, ...] 
+                    temp_spike = self.act(mem-self.thresh, self.gama)
+                    spike = temp_spike * self.thresh # spike [N, C, H, W]
+                    
+                    ### Soft reset ###
+                    # mem = mem - spike
+                    ### Hard reset ###
+                    mem = mem*(1.-spike)
 
-        # Store current state
-        self.current_mem = mem.detach().clone()
+                    spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+
+                x_step = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]  
+                x_step = self.merge(x_step)  
+                episode_spike_pot.append(x_step)
+
+            x = torch.stack(episode_spike_pot, dim=0)              
+
+            # Store current state
+            self.current_mem = mem.detach().clone()
+
+        else:
+            x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
+            spike_pot = []
+            for t in range(self.T):
+                
+                mem = self.tau*mem + x[t, ...] 
+                temp_spike = self.act(mem-self.thresh, self.gama)
+                spike = temp_spike * self.thresh # spike [N, C, H, W]
+                
+                ### Soft reset ###
+                # mem = mem - spike
+                ### Hard reset ###
+                mem = mem*(1.-spike)
+
+                spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+
+            x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
+            x = self.merge(x)  
+
+            # Store current state
+            self.current_mem = mem.detach().clone() 
 
         return x
 
