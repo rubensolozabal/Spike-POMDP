@@ -229,6 +229,13 @@ specialized_tags = {
         "Inputs": "o",
         "Arch": "separate",
     },
+    "sacd_snn": {         #r.s.o
+        "RL": "sacd",
+        "Encoder": "no",
+        "Len": "1",
+        "Inputs": "o",
+        "Arch": "separate",
+    },
     "Markovian_td3": {
         "RL": "td3",
         "Encoder": "no",
@@ -310,6 +317,7 @@ curve_style_dict = {
     "Markovian_td3": ("purple", no_dash), 
     "LIF_sac": ("magenta", no_dash),       #r.s.o
     "LIF_sacd": ("magenta", no_dash),       #r.s.o
+    "sacd_snn": ("magenta", no_dash),       #r.s.o
     "oracle_sac": ("orange", no_dash),
     "oracle_td3": ("pink", no_dash),
     "td3_2lstm": ("brown", no_dash),

@@ -74,16 +74,16 @@
             "request": "launch",
             "program": "scripts/merge_csv.py",
             "console": "integratedTerminal",
-            "args": ["--base_path","results/logs/pomdp/AntBLT/"]
-        }, 
+            "args": ["--base_path","results/logs/pomdp/CartPole/"] // CartPole, AntBLT
+        },  
         {
             "name": "plot_csv",
             "type": "debugpy",
             "request": "launch",
             "program": "scripts/plot_csv.py",
             "console": "integratedTerminal",
-            "args": ["--csv_path","results/data/pomdp/AntBLT/final.csv", "--best_variant", "sac-gru-64-oar-separate"]
-            // "args": ["--csv_path","results/data/pomdp/AntBLT/final.csv", "--best_variant", "sacd-lstm-1000-oar-separate"]
+            // "args": ["--csv_path","results/data/pomdp/AntBLT/final.csv", "--best_variant", "sac-gru-64-oar-separate"]
+            "args": ["--csv_path","results/data/pomdp/CartPole/final.csv", "--best_variant", "sacd-lstm-1000-oar-separate"]
         }
     ]
 }

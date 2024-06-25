@@ -142,7 +142,8 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         # Repear the input for LIF #r.s.o
         if isinstance(self.hidden_activation, list):       
             if isinstance(self.hidden_activation[0], LIF):
-                h = h.repeat(4,1)
+                T = self.hidden_activation[0].T
+                h = h.repeat(T,1)
 
         for i, fc in enumerate(self.fcs):
 
@@ -157,7 +158,8 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         # Expand and sum the spikes #r.s.o
         if isinstance(self.hidden_activation, list):
             if isinstance(self.hidden_activation[0], LIF):
-                h = ExpandTemporalDim(4)(h)
+                T = self.hidden_activation[0].T
+                h = ExpandTemporalDim(T)(h)
                 # Sum over axis 0
                 h = h.sum(axis=0)
 
