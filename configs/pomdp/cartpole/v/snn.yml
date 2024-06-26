@@ -22,7 +22,7 @@ train:
 eval:
   eval_stochastic: false # also eval stochastic policy
   log_interval: 1 # num of iters
-  save_interval: -1
+  save_interval: 1
   log_tensorboard: true
 
 policy:

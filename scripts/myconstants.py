@@ -317,7 +317,7 @@ curve_style_dict = {
     "Markovian_td3": ("purple", no_dash), 
     "LIF_sac": ("magenta", no_dash),       #r.s.o
     "LIF_sacd": ("magenta", no_dash),       #r.s.o
-    "sacd_snn": ("magenta", no_dash),       #r.s.o
+    "sacd_snn": ("red", no_dash),       #r.s.o
     "oracle_sac": ("orange", no_dash),
     "oracle_td3": ("pink", no_dash),
     "td3_2lstm": ("brown", no_dash),

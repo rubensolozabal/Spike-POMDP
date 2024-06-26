@@ -21,8 +21,8 @@ class ModelFreeOffPolicy_MLP(nn.Module):
     """
 
     ARCH = "markov"
-    Markov_Actor = True
-    Markov_Critic = True
+    type_actor = "mlp" # Markov_Actor = True
+    type_critic = "mlp" # Markov_Critic = True
 
     def __init__(
         self,
@@ -94,8 +94,8 @@ class ModelFreeOffPolicy_MLP(nn.Module):
 
         ### 1. Critic loss
         (q1_pred, q2_pred), q_target = self.algo.critic_loss(
-            markov_actor=self.Markov_Actor,
-            markov_critic=self.Markov_Critic,
+            type_actor=self.type_actor,     #r.s.o
+            type_critic=self.type_critic,      #r.s.o
             actor=self.policy,
             actor_target=self.policy_target,
             critic=(self.qf1, self.qf2),
@@ -125,8 +125,8 @@ class ModelFreeOffPolicy_MLP(nn.Module):
 
         ### 2. Actor loss
         policy_loss, log_probs = self.algo.actor_loss(
-            markov_actor=self.Markov_Actor,
-            markov_critic=self.Markov_Critic,
+            type_actor=self.type_actor,     #r.s.o
+            type_critic=self.type_critic,      #r.s.o
             actor=self.policy,
             actor_target=self.policy_target,
             critic=(self.qf1, self.qf2),

@@ -26,8 +26,9 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
     """
 
     ARCH = "memory"
-    Markov_Actor = False
-    Markov_Critic = False
+    
+    type_actor = "rnn" # Markov_Actor = False
+    type_critic = "rnn" # Markov_Critic = False
 
     def __init__(
         self,
@@ -152,8 +153,8 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
 
         ### 1. Critic loss
         (q1_pred, q2_pred), q_target = self.algo.critic_loss(
-            markov_actor=self.Markov_Actor,
-            markov_critic=self.Markov_Critic,
+            type_actor=self.type_actor,     #r.s.o
+            type_critic=self.type_critic,      #r.s.o
             actor=self.actor,
             actor_target=self.actor_target,
             critic=self.critic,
@@ -164,6 +165,7 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
             dones=dones,
             gamma=self.gamma,
         )
+
 
         # masked Bellman error: masks (T,B,1) ignore the invalid error
         # this is not equal to masks * q1_pred, cuz the denominator in mean()
@@ -179,8 +181,8 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
 
         ### 2. Actor loss
         policy_loss, log_probs = self.algo.actor_loss(
-            markov_actor=self.Markov_Actor,
-            markov_critic=self.Markov_Critic,
+            type_actor=self.type_actor,     #r.s.o
+            type_critic=self.type_critic,      #r.s.o
             actor=self.actor,
             actor_target=self.actor_target,
             critic=self.critic,
