@@ -73,8 +73,10 @@ class SAC(RLAlgorithmBase):
         )
         return qf1, qf2
 
-    def select_action(self, actor, observ, deterministic: bool, return_log_prob: bool):
-        return actor(observ, False, deterministic, return_log_prob)
+    def select_action(self, actor, observ, deterministic: bool, return_log_prob: bool,hidden_state=None):
+        
+        # return actor(observ, False, deterministic, return_log_prob)
+        return actor(observ, hidden_state, False, deterministic, return_log_prob)
 
     @staticmethod
     def forward_actor(actor, observ):
@@ -83,8 +85,8 @@ class SAC(RLAlgorithmBase):
 
     def critic_loss(
         self,
-        markov_actor: bool,
-        markov_critic: bool,
+        type_actor, # r.s.o
+        type_critic, # r.s.o
         actor,
         actor_target,
         critic,
@@ -96,13 +98,19 @@ class SAC(RLAlgorithmBase):
         gamma,
         next_observs=None,  # used in markov_critic
     ):
+        markov_critic = False # r.s.o
+        if type_critic == "mlp":
+            markov_critic = True
+
         # Q^tar(h(t+1), pi(h(t+1))) + H[pi(h(t+1))]
         with torch.no_grad():
             # first next_actions from current policy,
-            if markov_actor:
+            if type_actor == "mlp":
                 new_actions, new_log_probs = self.forward_actor(
                     actor, next_observs if markov_critic else observs
                 )
+            elif type_actor == "snn":
+                new_actions, new_log_probs = self.forward_actor(actor, next_observs)
             else:
                 # (T+1, B, dim) including reaction to last obs
                 new_actions, new_log_probs = actor(
@@ -111,7 +119,10 @@ class SAC(RLAlgorithmBase):
                     observs=next_observs if markov_critic else observs,
                 )
 
-            if markov_critic:  # (B, 1)
+            if type_critic == "mlp":  # (B, A)
+                next_q1 = critic_target[0](next_observs, new_actions)
+                next_q2 = critic_target[1](next_observs, new_actions)
+            elif type_critic == "snn":
                 next_q1 = critic_target[0](next_observs, new_actions)
                 next_q2 = critic_target[1](next_observs, new_actions)
             else:
@@ -127,10 +138,13 @@ class SAC(RLAlgorithmBase):
 
             # q_target: (T, B, 1)
             q_target = rewards + (1.0 - dones) * gamma * min_next_q_target  # next q
-            if not markov_critic:
+            if type_critic == "rnn":
                 q_target = q_target[1:]  # (T, B, 1)
 
-        if markov_critic:
+        if type_critic == "mlp":  # (B, A)
+            q1_pred = critic[0](observs, actions)
+            q2_pred = critic[1](observs, actions)
+        elif type_critic == "snn":
             q1_pred = critic[0](observs, actions)
             q2_pred = critic[1](observs, actions)
         else:
@@ -146,8 +160,8 @@ class SAC(RLAlgorithmBase):
 
     def actor_loss(
         self,
-        markov_actor: bool,
-        markov_critic: bool,
+        type_actor, # r.s.o
+        type_critic, # r.s.o
         actor,
         actor_target,
         critic,
@@ -156,16 +170,25 @@ class SAC(RLAlgorithmBase):
         actions=None,
         rewards=None,
     ):
-        if markov_actor:
+        markov_critic = False
+        if type_critic == "mlp":
+            markov_critic = True
+
+        if type_actor == "mlp":
+            new_actions, log_probs = self.forward_actor(actor, observs)
+        elif type_actor == "snn":
             new_actions, log_probs = self.forward_actor(actor, observs)
         else:
             new_actions, log_probs = actor(
                 prev_actions=actions, rewards=rewards, observs=observs
             )  # (T+1, B, A)
 
-        if markov_critic:
+        if type_critic == "mlp":
             q1 = critic[0](observs, new_actions)
             q2 = critic[1](observs, new_actions)
+        elif type_actor == "snn":
+            q1 = critic[0](observs, new_actions)
+            q2 = critic[1](observs, new_actions)            
         else:
             q1, q2 = critic(
                 prev_actions=actions,
@@ -177,7 +200,7 @@ class SAC(RLAlgorithmBase):
 
         policy_loss = -min_q_new_actions
         policy_loss += self.alpha_entropy * log_probs
-        if not markov_critic:
+        if type_critic == "rnn":
             policy_loss = policy_loss[:-1]  # (T,B,1) remove the last obs
 
         return policy_loss, log_probs

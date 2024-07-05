@@ -37,12 +37,28 @@
             "args": ["--cfg","configs/pomdp/cartpole/v/snn.yml", "--cuda","0"]
         },
         {
+            "name": "pendulum_v mlp",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/pendulum/v/mlp.yml", "--cuda","0"]
+        },
+        {
             "name": "pendulum_v rnn",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
             "args": ["--cfg","configs/pomdp/pendulum/v/rnn.yml", "--cuda","0"]
+        },
+        {
+            "name": "pendulum_v snn",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/pendulum/v/snn.yml", "--cuda","0"]
         },
         {
             "name": "ant_p mlp",

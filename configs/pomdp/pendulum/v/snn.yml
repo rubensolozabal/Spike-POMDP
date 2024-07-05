@@ -2,7 +2,7 @@ seed: 73
 cuda: 0 # use_gpu
 env:
   env_type: pomdp
-  env_name: Pendulum-V-v0 ##Pendulum-v1 #Pendulum-V-v0
+  env_name: Pendulum-V-v0
 
   num_eval_tasks: 20 # num of eval episodes
 
@@ -11,8 +11,13 @@ train:
   num_iters: 250 # number meta-training iterates
   num_init_rollouts_pool: 5 # before training
   num_rollouts_per_iter: 1
+
+  num_updates_per_iter: 1.0
+  # buffer params
   buffer_size: 1e6
-  batch_size: 256
+  batch_size: 32 # to tune based on sampled_seq_len
+  sampled_seq_len: -1 # -1 is all, or positive integer
+  sample_weight_baseline: 0.0
 
 eval:
   eval_stochastic: false # also eval stochastic policy
@@ -21,11 +26,18 @@ eval:
   log_tensorboard: true
 
 policy:
-  seq_model: mlp
+  separate: True
+  seq_model: snn # [lstm, gru]
   algo_name: sac # [td3, sac]
+
+  action_embedding_size: 8 # no action input
+  observ_embedding_size: 32
+  reward_embedding_size: 8
+  rnn_hidden_size: 128
 
   dqn_layers: [128, 128]
   policy_layers: [128, 128]
+  hidden_activation: ["LIF(T=4)", "LIF(T=4)"]
   lr: 0.0003
   gamma: 0.9
   tau: 0.005

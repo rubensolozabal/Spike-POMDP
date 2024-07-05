@@ -128,6 +128,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
     def forward(
         self,
         obs,
+        hidden_state=None, #r.s.o
         reparameterize=True,
         deterministic=False,
         return_log_prob=False,
@@ -140,17 +141,24 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         h = self.preprocess(obs)
 
         # Repear the input for LIF #r.s.o
-        if isinstance(self.hidden_activation, list):       
+        if isinstance(self.hidden_activation, list):
             if isinstance(self.hidden_activation[0], LIF):
                 T = self.hidden_activation[0].T
-                h = h.repeat(T,1)
+                if len(obs.shape) == 2:   #[BS, dim]
+                    h = h.repeat(T,1)
+                else:
+                    h = h.repeat(1,T,1)     #[episode, BS, dim]
+
 
         for i, fc in enumerate(self.fcs):
-
+            h= fc(h) # r.s.o
             if isinstance(self.hidden_activation, list):    #r.s.o
-                h = self.hidden_activation[i](fc(h))
+                if hidden_state is not None:
+                    h = self.hidden_activation[i](h, hidden_state[i])
+                else:
+                    h = self.hidden_activation[i](h)
             else:
-                h = self.hidden_activation(fc(h))
+                h = self.hidden_activation(h)
 
             # h = self.hidden_activation(fc(h))          # original
 
@@ -159,9 +167,14 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         if isinstance(self.hidden_activation, list):
             if isinstance(self.hidden_activation[0], LIF):
                 T = self.hidden_activation[0].T
-                h = ExpandTemporalDim(T)(h)
-                # Sum over axis 0
-                h = h.sum(axis=0)
+                if len(obs.shape) == 2: 
+                    # output = self.hidden_activation.expand(output)
+                    h = ExpandTemporalDim(T)(h)
+                    # Sum over axis 0
+                    h = h.sum(axis=0)
+                else:
+                    h = ExpandTemporalDim(T,1)(h)
+                    h = h.sum(axis=1)
 
 
         mean = self.last_fc(h)
