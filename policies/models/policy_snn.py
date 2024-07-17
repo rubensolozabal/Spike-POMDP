@@ -3,7 +3,7 @@ Episodic stateful SNN implementation for POMDP environments
 
 Date: 2024-06-01
 """
-
+import time
 import copy
 import torch
 import torch.nn as nn
@@ -51,6 +51,7 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
             hidden_activation = []
             for i, value in enumerate(kwargs["hidden_activation"]):
                 f_call = eval(value)
+                # f_call = torch.jit.script(f_call)
                 hidden_activation.append(f_call)
 
 
@@ -92,6 +93,7 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
         actions, rewards, dones = batch["act"], batch["rew"], batch["term"]  # (B, dim)
 
         ### 1. Critic loss
+        start = time.time()
         (q1_pred, q2_pred), q_target = self.algo.critic_loss(
             type_actor=self.type_actor,
             type_critic=self.type_critic,
@@ -106,23 +108,28 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
             gamma=self.gamma,
             next_observs=next_observs,
         )
+        print("Critic loss time: ", time.time() - start)
 
         qf1_loss = F.mse_loss(q1_pred, q_target)  # TD error
         qf2_loss = F.mse_loss(q2_pred, q_target)  # TD error
 
+
         # update q networks
+        start = time.time()
         self.qf1_optim.zero_grad()
         self.qf2_optim.zero_grad()
         qf1_loss.backward()
         qf2_loss.backward()
         self.qf1_optim.step()
         self.qf2_optim.step()
+        print("Critic update time: ", time.time() - start)
 
 
         # soft update
         self.soft_target_update()
 
         ### 2. Actor loss
+        start = time.time()
         actor_loss, log_probs = self.algo.actor_loss(
             type_actor=self.type_actor,
             type_critic=self.type_critic,
@@ -133,11 +140,14 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
             observs=observs,
         )
         actor_loss = actor_loss.mean()
+        print("Actor loss time: ", time.time() - start)
 
         # update policy network
+        start = time.time()
         self.actor_optim.zero_grad()
         actor_loss.backward()
         self.actor_optim.step()
+        print("Actor update time: ", time.time() - start)
 
         outputs = {
             "qf1_loss": qf1_loss.item(),

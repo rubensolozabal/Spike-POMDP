@@ -37,7 +37,7 @@ policy:
 
   dqn_layers: [128, 128]
   policy_layers: [128, 128]
-  hidden_activation: ["LIF(T=4)", "LIF(T=4)"]
+  hidden_activation: ["LIF(T=2)", "LIF(T=2)"]
   lr: 0.0003
   gamma: 0.9
   tau: 0.005

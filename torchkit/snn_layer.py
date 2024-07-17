@@ -14,6 +14,16 @@ class MergeTemporalDim(nn.Module):
     def forward(self, x_seq: torch.Tensor):
         return x_seq.flatten(0, 1).contiguous() # x_seq shape [T, N, C, H, W] -> [T * N, C, H, W]. syntax of flatten, For example, if you have a tensor of shape [a, b, c, d], after applying flatten(0, 1), the shape will become [a*b, c, d]. It essentially merges the first two dimensions.
 
+from typing import List, Tuple
+# @torch.jit.script
+def my_1d_tolist(x):
+    result: List[int] = []
+    for i in x:
+        result.append(i.item())
+    return result
+
+
+
 class ExpandTemporalDim(nn.Module):
     def __init__(self, T, dim=0):
         super().__init__()
@@ -26,6 +36,16 @@ class ExpandTemporalDim(nn.Module):
         y_shape.extend([self.T, int(x_seq.shape[self.dim]/self.T)])
         y_shape.extend(x_seq.shape[self.dim+1:]) 
         return x_seq.view(y_shape) 
+    
+    # def forward(self, x_seq: torch.Tensor) -> torch.Tensor:
+    #     dim_size = x_seq.size(self.dim)
+    #     y_shape = torch.tensor(x_seq.shape, dtype=torch.int64)  # Convert shape to tensor
+    #     y_shape[self.dim] = self.T
+    #     # Use torch.cat to concatenate tensors
+    #     y_shape = torch.cat([y_shape[:self.dim+1], torch.tensor([dim_size // self.T], dtype=torch.int64), y_shape[self.dim+1:]])
+    #     return x_seq.view(my_1d_tolist(y_shape))  # Convert tensor to tuple for view
+
+
 
 class ZIF(torch.autograd.Function):
     @staticmethod
@@ -50,7 +70,7 @@ class ZIF(torch.autograd.Function):
 class LIF(nn.Module):
     def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
         super(LIF, self).__init__()
-        self.act = ZIF.apply        
+        self.act = ZIF.apply       
         # self.thresh = nn.Parameter(torch.tensor([thresh], device='cuda'), requires_grad=False, )
         self.thresh = torch.tensor([thresh], device='cuda', requires_grad=False)
         self.tau = tau

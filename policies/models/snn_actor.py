@@ -54,6 +54,7 @@ class Actor_SNN(nn.Module):
     @torch.no_grad()
     def get_initial_info(self):
         return [act.init_mem for act in self.policy.hidden_activation]
+        # return [act.init_leaky() for act in self.policy.hidden_activation]    # snnTorch
 
     
     @torch.no_grad()
@@ -68,4 +69,6 @@ class Actor_SNN(nn.Module):
         )
 
         current_state = [act.current_mem for act in self.policy.hidden_activation]
+        # current_state = [act.mem for act in self.policy.hidden_activation] # snnTorch
+        
         return (a, prob, log_prob, _), current_state

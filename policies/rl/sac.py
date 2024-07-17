@@ -5,7 +5,7 @@ from .base import RLAlgorithmBase
 from policies.models.actor import TanhGaussianPolicy
 from torchkit.networks import FlattenMlp
 import torchkit.pytorch_utils as ptu
-
+import time
 import torch.nn.functional as F
 
 from torchkit.snn_layer import LIF
@@ -123,8 +123,10 @@ class SAC(RLAlgorithmBase):
                 next_q1 = critic_target[0](next_observs, new_actions)
                 next_q2 = critic_target[1](next_observs, new_actions)
             elif type_critic == "snn":
+                start = time.time()
                 next_q1 = critic_target[0](next_observs, new_actions)
                 next_q2 = critic_target[1](next_observs, new_actions)
+                # print("Critic_target time: ", time.time()-start)
             else:
                 next_q1, next_q2 = critic_target(
                     prev_actions=actions,
@@ -145,8 +147,10 @@ class SAC(RLAlgorithmBase):
             q1_pred = critic[0](observs, actions)
             q2_pred = critic[1](observs, actions)
         elif type_critic == "snn":
+            start = time.time()
             q1_pred = critic[0](observs, actions)
             q2_pred = critic[1](observs, actions)
+            # print("Critic time: ", time.time()-start)
         else:
             # Q(h(t), a(t)) (T, B, 1)
             q1_pred, q2_pred = critic(
@@ -187,8 +191,10 @@ class SAC(RLAlgorithmBase):
             q1 = critic[0](observs, new_actions)
             q2 = critic[1](observs, new_actions)
         elif type_actor == "snn":
+            start = time.time()
             q1 = critic[0](observs, new_actions)
-            q2 = critic[1](observs, new_actions)            
+            q2 = critic[1](observs, new_actions)    
+            # print("Critic time: ", time.time()-start)        
         else:
             q1, q2 = critic(
                 prev_actions=actions,

@@ -9,7 +9,7 @@ from torchkit.networks import Mlp
 
 from torchkit.snn_layer import LIF
 from torchkit.snn_layer import ExpandTemporalDim
-
+import time
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
 PROB_MIN = 1e-8
@@ -138,6 +138,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         :param deterministic: If True, do not sample
         :param return_log_prob: If True, return a sample and its log probability
         """
+        # Measure time
         h = self.preprocess(obs)
 
         # Repear the input for LIF #r.s.o
@@ -151,12 +152,19 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
 
         for i, fc in enumerate(self.fcs):
+            start = time.time()
             h= fc(h) # r.s.o
+            # print("FC time: ", time.time()-start)
+
             if isinstance(self.hidden_activation, list):    #r.s.o
                 if hidden_state is not None:
+                    start = time.time()
                     h = self.hidden_activation[i](h, hidden_state[i])
+                    # print("LIF time: ", time.time()-start)
                 else:
+                    start = time.time()
                     h = self.hidden_activation[i](h)
+                    # print("LIF time: ", time.time()-start)
             else:
                 h = self.hidden_activation(h)
 

@@ -14,7 +14,7 @@ from torchkit.pytorch_utils import set_gpu_mode
 from policies.learner import Learner
 
 
-torch.autograd.set_detect_anomaly(True)
+# torch.autograd.set_detect_anomaly(True)
 
 
 

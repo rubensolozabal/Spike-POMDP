@@ -24,7 +24,7 @@ from utils import helpers as utl
 from torchkit import pytorch_utils as ptu
 from utils import evaluation as utl_eval
 from utils import logger
-
+import time
 import gc #r.s.o
 gc.disable()
 
@@ -385,6 +385,7 @@ class Learner:
             env_steps = self.collect_rollouts(num_rollouts=self.num_rollouts_per_iter)
             logger.log("env steps", self._n_env_steps_total)
 
+
             train_stats = self.update(
                 self.num_updates_per_iter
                 if isinstance(self.num_updates_per_iter, int)
@@ -571,12 +572,14 @@ class Learner:
     def update(self, num_updates):
         rl_losses_agg = {}
         for update in range(num_updates):
-            # print(f"RL update {update}/{num_updates}")#r.s.o
+            print(f"RL update {update}/{num_updates}")#r.s.o
             # sample random RL batch: in transitions
             batch = self.sample_rl_batch(self.batch_size)
-
+       
             # RL update
+            start = time.time()
             rl_losses = self.agent.update(batch)
+            print(f"update time: {time.time()-start:.2f}")#r.s.o
 
             for k, v in rl_losses.items():
                 if update == 0:  # first iterate - create list
