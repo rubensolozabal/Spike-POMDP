@@ -110,7 +110,7 @@ class SAC(RLAlgorithmBase):
                     actor, next_observs if markov_critic else observs
                 )
             elif type_actor == "snn":
-                new_actions, new_log_probs = self.forward_actor(actor, next_observs)
+                new_actions, new_log_probs = self.forward_actor(actor, next_observs if markov_critic else observs)
             else:
                 # (T+1, B, dim) including reaction to last obs
                 new_actions, new_log_probs = actor(
@@ -190,7 +190,7 @@ class SAC(RLAlgorithmBase):
         if type_critic == "mlp":
             q1 = critic[0](observs, new_actions)
             q2 = critic[1](observs, new_actions)
-        elif type_actor == "snn":
+        elif type_critic == "snn":
             start = time.time()
             q1 = critic[0](observs, new_actions)
             q2 = critic[1](observs, new_actions)    

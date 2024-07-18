@@ -226,6 +226,10 @@ class Learner:
             agent_class = AGENT_CLASSES["Policy_Separate_SNN"]
             rnn_encoder_type = None
             assert separate == True
+        elif seq_model == "snn-rnn":
+            agent_class = AGENT_CLASSES["Policy_SNN_RNN"]
+            rnn_encoder_type = 'lstm'
+            assert separate == True
         elif "-mlp" in seq_model:
             agent_class = AGENT_CLASSES["Policy_RNN_MLP"]
             rnn_encoder_type = seq_model.split("-")[0]

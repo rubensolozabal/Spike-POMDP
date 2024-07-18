@@ -61,6 +61,14 @@
             "args": ["--cfg","configs/pomdp/pendulum/v/snn.yml", "--cuda","0"]
         },
         {
+            "name": "pendulum_v snn-rnn",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": ["--cfg","configs/pomdp/pendulum/v/snn_rnn.yml", "--cuda","0"]
+        },
+        {
             "name": "ant_p mlp",
             "type": "debugpy",
             "request": "launch",

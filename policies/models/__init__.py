@@ -3,6 +3,7 @@ from .policy_rnn_mlp import ModelFreeOffPolicy_RNN_MLP as Policy_RNN_MLP
 from .policy_rnn import ModelFreeOffPolicy_Separate_RNN as Policy_Separate_RNN
 from .policy_rnn_shared import ModelFreeOffPolicy_Shared_RNN as Policy_Shared_RNN
 from .policy_snn import ModelFreeOffPolicy_Separate_SNN as Policy_Separate_SNN
+from .policy_snn_rnn import ModelFreeOffPolicy_SNN_RNN as Policy_SNN_RNN
 
 AGENT_CLASSES = {
     "Policy_MLP": Policy_MLP,
@@ -10,6 +11,7 @@ AGENT_CLASSES = {
     "Policy_Separate_RNN": Policy_Separate_RNN,
     "Policy_Shared_RNN": Policy_Shared_RNN,
     "Policy_Separate_SNN": Policy_Separate_SNN, # r.s.o
+    "Policy_SNN_RNN": Policy_SNN_RNN, # r.s.o
 }
 
 
