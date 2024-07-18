@@ -91,6 +91,24 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
     def update(self, batch):
         observs, next_observs = batch["obs"], batch["obs2"]  # (B, dim)
         actions, rewards, dones = batch["act"], batch["rew"], batch["term"]  # (B, dim)
+        masks = batch["mask"]
+
+        assert (
+            actions.dim()
+            == rewards.dim()
+            == dones.dim()
+            == observs.dim()
+            == masks.dim()
+            == 3
+        )
+        assert (
+            actions.shape[0]
+            == rewards.shape[0]
+            == dones.shape[0]
+            == observs.shape[0]
+            == masks.shape[0] 
+        )
+        num_valid = torch.clamp(masks.sum(), min=1.0)  # as denominator of loss
 
         ### 1. Critic loss
         start = time.time()
@@ -110,8 +128,10 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
         )
         print("Critic loss time: ", time.time() - start)
 
-        qf1_loss = F.mse_loss(q1_pred, q_target)  # TD error
-        qf2_loss = F.mse_loss(q2_pred, q_target)  # TD error
+        q1_pred, q2_pred = q1_pred * masks, q2_pred * masks
+        q_target = q_target * masks
+        qf1_loss = ((q1_pred - q_target) ** 2).sum() / num_valid  # TD error
+        qf2_loss = ((q2_pred - q_target) ** 2).sum() / num_valid  # TD error
 
 
         # update q networks
@@ -139,7 +159,8 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
             critic_target=(self.qf1_target, self.qf2_target),
             observs=observs,
         )
-        actor_loss = actor_loss.mean()
+        # masked policy_loss
+        actor_loss = (actor_loss * masks).sum() / num_valid
         print("Actor loss time: ", time.time() - start)
 
         # update policy network
@@ -155,9 +176,13 @@ class ModelFreeOffPolicy_Separate_SNN(nn.Module):
             "policy_loss": actor_loss.item(),
         }
 
-        # update others like alpha
+
+        ### 4. update others like alpha
         if log_probs is not None:
-            current_log_probs = log_probs.mean().item()
+            # extract valid log_probs
+            with torch.no_grad():
+                current_log_probs = (log_probs * masks).sum() / num_valid
+                current_log_probs = current_log_probs.item()
 
             other_info = self.algo.update_others(current_log_probs)
             outputs.update(other_info)
