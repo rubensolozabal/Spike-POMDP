@@ -150,7 +150,7 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
             rewards=_rewards,
             dones=_dones,
             gamma=self.gamma,
-            next_observs=next_observs,
+            # next_observs=next_observs,
         )
 
 
@@ -179,9 +179,9 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
             actor_target=self.actor_target,
             critic=self.critic,
             critic_target=self.critic_target,
-            observs=_observs,
-            actions=_actions,
-            rewards=_rewards,
+            observs=observs,
+            actions=actions,
+            rewards=rewards,
         )
 
 
