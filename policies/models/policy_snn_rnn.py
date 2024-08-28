@@ -207,7 +207,9 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
         if log_probs is not None:
             # extract valid log_probs
             with torch.no_grad():
-                current_log_probs = (log_probs[:-1] * masks).sum() / num_valid
+                if self.type_actor != 'snn':
+                    log_probs = log_probs[:-1] # r.s.o
+                current_log_probs = (log_probs * masks).sum() / num_valid
                 current_log_probs = current_log_probs.item()
 
             other_info = self.algo.update_others(current_log_probs)
