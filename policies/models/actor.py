@@ -7,8 +7,7 @@ from torch.distributions import Categorical
 from torchkit.distributions import TanhNormal
 from torchkit.networks import Mlp
 
-from torchkit.snn_layer import LIF
-from torchkit.snn_layer import ExpandTemporalDim
+from torchkit.snn_layer import *
 import time
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
@@ -143,7 +142,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
         # Repear the input for LIF #r.s.o
         if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF):
+            if isinstance(self.hidden_activation[0], LIF) or isinstance(self.hidden_activation[0], STC_LIF):
                 T = self.hidden_activation[0].T
                 if len(obs.shape) == 2:   #[BS, dim]
                     h = h.repeat(T,1)
@@ -159,7 +158,15 @@ class TanhGaussianPolicy(MarkovPolicyBase):
             if isinstance(self.hidden_activation, list):    #r.s.o
                 if hidden_state is not None:
                     start = time.time()
-                    h = self.hidden_activation[i](h, hidden_state[i])
+
+                    mem = hidden_state["mem"][i]
+                    if isinstance(self.hidden_activation[0], STC_LIF):
+                        spike = hidden_state["spike"][i]
+                        h = self.hidden_activation[i](x = h, mem=mem, spike = spike)
+                    else:
+                        h = self.hidden_activation[i](x = h, mem=mem)
+
+                    # h = self.hidden_activation[i](h, hidden_state[i])
                     # print("LIF time: ", time.time()-start)
                 else:
                     start = time.time()
@@ -173,7 +180,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
         # Expand and sum the spikes #r.s.o
         if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF):
+            if isinstance(self.hidden_activation[0], LIF)  or isinstance(self.hidden_activation[0], STC_LIF):
                 T = self.hidden_activation[0].T
                 if len(obs.shape) == 2: 
                     # output = self.hidden_activation.expand(output)

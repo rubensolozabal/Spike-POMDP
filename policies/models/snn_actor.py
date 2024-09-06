@@ -5,7 +5,7 @@ from utils import helpers as utl
 from torchkit.constant import *
 import torchkit.pytorch_utils as ptu
 
-
+from torchkit.snn_layer import LIF, STC_LIF
 class Actor_SNN(nn.Module):
     def __init__(
         self,
@@ -53,7 +53,19 @@ class Actor_SNN(nn.Module):
 
     @torch.no_grad()
     def get_initial_info(self):
-        return [act.init_mem for act in self.policy.hidden_activation]
+
+        mem  = [act.init_mem for act in self.policy.hidden_activation]
+
+        if isinstance(self.policy.hidden_activation[0], STC_LIF):
+            spike = [act.init_mem for act in self.policy.hidden_activation] 
+            init_state = {"mem": mem, "spike": spike}
+        else:
+            init_state = {"mem": mem}
+        
+        return init_state
+
+
+        # return [act.init_mem for act in self.policy.hidden_activation]
         # return [act.init_leaky() for act in self.policy.hidden_activation]    # snnTorch
 
     
@@ -68,7 +80,15 @@ class Actor_SNN(nn.Module):
             return_log_prob=return_log_prob,
         )
 
-        current_state = [act.current_mem for act in self.policy.hidden_activation]
+        mem = [act.current_mem for act in self.policy.hidden_activation]
+
+        if isinstance(self.policy.hidden_activation[0], STC_LIF):
+            spike = [act.last_spike for act in self.policy.hidden_activation]
+            current_state = {"mem": mem, "spike": spike}
+        else:
+            current_state = {"mem": mem}
+
+        # current_state = [act.current_mem for act in self.policy.hidden_activation]
         # current_state = [act.mem for act in self.policy.hidden_activation] # snnTorch
         
         return (a, prob, log_prob, _), current_state

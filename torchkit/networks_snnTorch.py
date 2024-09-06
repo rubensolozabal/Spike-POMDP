@@ -11,7 +11,7 @@ from torch.nn import functional as F
 from torchkit import pytorch_utils as ptu
 from torchkit.core import PyTorchModule
 from torchkit.modules import LayerNorm
-from torchkit.snn_layer import LIF
+from torchkit.snn_layer import LIF, STC_LIF
 from torchkit.snn_layer import ExpandTemporalDim
 
 

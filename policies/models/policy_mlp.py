@@ -11,7 +11,7 @@ from policies.models import *
 from policies.rl import RL_ALGORITHMS
 import torchkit.pytorch_utils as ptu
 
-from torchkit.snn_layer import LIF
+from torchkit.snn_layer import LIF, STC_LIF
 
 class ModelFreeOffPolicy_MLP(nn.Module):
     """

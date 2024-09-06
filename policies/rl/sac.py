@@ -8,7 +8,7 @@ import torchkit.pytorch_utils as ptu
 import time
 import torch.nn.functional as F
 
-from torchkit.snn_layer import LIF
+from torchkit.snn_layer import LIF, STC_LIF
 
 
 class SAC(RLAlgorithmBase):

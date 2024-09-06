@@ -81,9 +81,12 @@ class LIF(nn.Module):
         self.init_mem = 0.
         self.current_mem = 0.
 
-    def forward(self, x, mem=None):        
+    def forward(self, x, **kwargs):        
         # thre = self.thresh.data        
         
+        mem = kwargs.get("mem", None)
+    
+    
         if mem is not None:
             mem = mem
         else:
@@ -101,8 +104,13 @@ class LIF(nn.Module):
                 for t in range(self.T):
                     
                     mem = self.tau*mem + x_step[t, ...] 
+                    
+                    # print(mem[0])
+
                     temp_spike = self.act(mem-self.thresh, self.gama)
                     spike = temp_spike * self.thresh # spike [N, C, H, W]
+
+                    print(spike[0])
                     
                     ### Soft reset ###
                     # mem = mem - spike
@@ -115,7 +123,9 @@ class LIF(nn.Module):
                 x_step = self.merge(x_step)  
                 episode_spike_pot.append(x_step)
 
-            x = torch.stack(episode_spike_pot, dim=0)              
+            x = torch.stack(episode_spike_pot, dim=0)    
+
+            # print(spike[0])              
 
             # Store current state
             self.current_mem = mem.detach().clone()
@@ -126,8 +136,12 @@ class LIF(nn.Module):
             for t in range(self.T):
                 
                 mem = self.tau*mem + x[t, ...] 
+
+                
                 temp_spike = self.act(mem-self.thresh, self.gama)
                 spike = temp_spike * self.thresh # spike [N, C, H, W]
+
+                
                 
                 ### Soft reset ###
                 # mem = mem - spike
@@ -146,40 +160,119 @@ class LIF(nn.Module):
 
 
 
+class STC_LIF(nn.Module):
+    def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
+        super(STC_LIF, self).__init__()
+        self.act = ZIF.apply       
+        # self.thresh = nn.Parameter(torch.tensor([thresh], device='cuda'), requires_grad=False, )
+        self.thresh = torch.tensor([thresh], device='cuda', requires_grad=False)
+        self.tau = tau
+        self.gama = gama
+        self.expand = ExpandTemporalDim(T)
+        self.merge = MergeTemporalDim(T)
+        self.T = T
+        self.init_mem = None
+        self.current_mem = 0.
+        self.last_spike = 0.
 
-# class LIF(nn.Module):
-#     def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
-#         super(LIF, self).__init__()
-#         self.act = ZIF.apply        
-#         # self.thresh = nn.Parameter(torch.tensor([thresh], device='cuda'), requires_grad=False, )
-#         self.thresh = torch.tensor([thresh], device='cuda', requires_grad=False)
-#         self.tau = tau
-#         self.gama = gama
-#         self.expand = ExpandTemporalDim(T)
-#         self.merge = MergeTemporalDim(T)
-#         self.T = T
-#         self.mem = 0.
+        # Internal weights
+        self.W_gt = nn.Linear(128, 128).cuda()
+        self.W_gs = nn.Linear(128, 128).cuda()
 
-#     def forward(self, x):        
-#         # thre = self.thresh.data        
-#         x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
-#         spike_pot = []
-#         mem = 0.
-#         for t in range(self.T):
+    def forward(self, x, **kwargs):        
+
+        mem = kwargs.get("mem", None)
+        spike = kwargs.get("spike", None)
+        
+
+
+        if len(x.shape) == 3:
             
-#             mem = self.tau*mem + x[t, ...] 
-#             temp_spike = self.act(mem-self.thresh, self.gama)
-#             spike = temp_spike * self.thresh # spike [N, C, H, W]
+            if mem is None or spike is None:
+                BS = int(x.shape[1]/self.T)
+                mem = torch.zeros((BS,128)).cuda()
+                spike = torch.zeros((BS,128)).cuda()
+            else:
+                mem = mem
+                spike = spike
+
+        
+            steps = x.shape[0] # [steps=200, BS=32 * T=4, embed]
+            episode_spike_pot = []
+            for step in range(steps):
+
+                x_step = x[step, ...]
+                x_step = self.expand(x_step) # [T * N, C, H, W] -> [T, N, C, H, W]
+
+                spike_pot = []
+                for t in range(self.T):
+                    
+                    beta = (1 + torch.tanh(self.W_gt(spike)))/2
+                    gamma = (1 + torch.tanh(self.W_gs(spike)))/2
+
+                    mem = mem  + x_step[t, ...] * gamma 
+
+                    # print(mem[0])
+
+                    temp_spike = self.act(mem-self.thresh, self.gama)
+                    spike = temp_spike * self.thresh # spike [N, C, H, W]
+
+                    print(spike[0])
+                    
+                    ### Soft reset ###
+                    # mem = mem - spike
+                    ### Hard reset ###
+                    mem = mem*(1.-spike)
+
+                    spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+
+                x_step = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]  
+                x_step = self.merge(x_step)  
+                episode_spike_pot.append(x_step)
+
+            x = torch.stack(episode_spike_pot, dim=0)       
+
+            # print(spike[0])       
+
+            # Store current state
+            self.current_mem = mem.detach().clone()
+            self.last_spike = spike.detach().clone()
+        else:
+
+            if mem is None or spike is None:
+                BS = int(x.shape[0]/self.T)
+                mem = torch.zeros((BS,128)).cuda()
+                spike = torch.zeros((BS,128)).cuda()
+            else:
+                mem = mem
+                spike = spike
+
+  
+            x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
+            spike_pot = []
             
-#             ### Soft reset ###
-#             # mem = mem - spike
-#             ### Hard reset ###
-#             mem = mem*(1.-spike)
+            for t in range(self.T):
+                
+                beta = (1 + torch.tanh(self.W_gt(spike)))/2
+                gamma = (1 + torch.tanh(self.W_gs(spike)))/2
 
-#             spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+                mem = mem * beta + x[t, ...] * gamma 
+                
+                temp_spike = self.act(mem-self.thresh, self.gama)
+                spike = temp_spike * self.thresh # spike [N, C, H, W]
+                
+                ### Soft reset ###
+                # mem = mem - spike
+                ### Hard reset ###
+                mem = mem*(1.-spike)
 
-#         x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
-#         x = self.merge(x)        
-#         return x
-    
+                spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
 
+            x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
+            x = self.merge(x)  
+
+            # Store current state
+            self.current_mem = mem.detach().clone()
+            self.last_spike = spike.detach().clone()
+
+        return x

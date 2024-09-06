@@ -8,7 +8,7 @@ from torchkit.networks import FlattenMlp
 import torchkit.pytorch_utils as ptu
 import torch.nn.functional as F
 
-from torchkit.snn_layer import LIF
+from torchkit.snn_layer import LIF, STC_LIF
 
 class SACD(RLAlgorithmBase):
     name = "sacd"
