@@ -14,7 +14,7 @@ from policies.rl import RL_ALGORITHMS
 import torchkit.pytorch_utils as ptu
 from copy import deepcopy
 
-from torchkit.snn_layer import LIF, STC_LIF
+from torchkit.snn_layer import LIF, STC_LIF, LIF_residue
 from policies.models.snn_actor import Actor_SNN
 from policies.models.recurrent_critic import Critic_RNN
 

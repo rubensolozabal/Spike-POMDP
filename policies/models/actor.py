@@ -142,7 +142,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
         # Repear the input for LIF #r.s.o
         if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF) or isinstance(self.hidden_activation[0], STC_LIF):
+            if isinstance(self.hidden_activation[0], LIF) or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue):
                 T = self.hidden_activation[0].T
                 if len(obs.shape) == 2:   #[BS, dim]
                     h = h.repeat(T,1)
@@ -163,6 +163,9 @@ class TanhGaussianPolicy(MarkovPolicyBase):
                     if isinstance(self.hidden_activation[0], STC_LIF):
                         spike = hidden_state["spike"][i]
                         h = self.hidden_activation[i](x = h, mem=mem, spike = spike)
+                    elif isinstance(self.hidden_activation[0], LIF_residue):
+                        spike_residue = hidden_state["spike_residue"][i]
+                        h = self.hidden_activation[i](x = h, mem=mem, spike_residue=spike_residue)
                     else:
                         h = self.hidden_activation[i](x = h, mem=mem)
 
@@ -180,7 +183,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
         # Expand and sum the spikes #r.s.o
         if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF)  or isinstance(self.hidden_activation[0], STC_LIF):
+            if isinstance(self.hidden_activation[0], LIF)  or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue):
                 T = self.hidden_activation[0].T
                 if len(obs.shape) == 2: 
                     # output = self.hidden_activation.expand(output)

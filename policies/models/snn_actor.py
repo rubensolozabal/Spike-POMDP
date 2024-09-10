@@ -5,7 +5,7 @@ from utils import helpers as utl
 from torchkit.constant import *
 import torchkit.pytorch_utils as ptu
 
-from torchkit.snn_layer import LIF, STC_LIF
+from torchkit.snn_layer import LIF, STC_LIF, LIF_residue
 class Actor_SNN(nn.Module):
     def __init__(
         self,
@@ -59,6 +59,9 @@ class Actor_SNN(nn.Module):
         if isinstance(self.policy.hidden_activation[0], STC_LIF):
             spike = [act.init_mem for act in self.policy.hidden_activation] 
             init_state = {"mem": mem, "spike": spike}
+        elif isinstance(self.policy.hidden_activation[0], LIF_residue):
+            spike_residue = [act.init_mem for act in self.policy.hidden_activation] 
+            init_state = {"mem": mem, "spike_residue": spike_residue}
         else:
             init_state = {"mem": mem}
         
@@ -85,6 +88,9 @@ class Actor_SNN(nn.Module):
         if isinstance(self.policy.hidden_activation[0], STC_LIF):
             spike = [act.last_spike for act in self.policy.hidden_activation]
             current_state = {"mem": mem, "spike": spike}
+        elif isinstance(self.policy.hidden_activation[0], LIF_residue):
+            spike_residue = [act.current_spike_residue for act in self.policy.hidden_activation]
+            current_state = {"mem": mem, "spike_residue": spike_residue}
         else:
             current_state = {"mem": mem}
 
