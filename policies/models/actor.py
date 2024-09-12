@@ -189,10 +189,12 @@ class TanhGaussianPolicy(MarkovPolicyBase):
                     # output = self.hidden_activation.expand(output)
                     h = ExpandTemporalDim(T)(h)
                     # Sum over axis 0
-                    h = h.sum(axis=0)
+                    # h = h.sum(axis=0)
+                    h = h[-1]
                 else:
                     h = ExpandTemporalDim(T,1)(h)
-                    h = h.sum(axis=1)
+                    # h = h.sum(axis=1)
+                    h = h[:,-1]
 
 
         mean = self.last_fc(h)
