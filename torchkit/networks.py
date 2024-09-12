@@ -11,7 +11,7 @@ from torch.nn import functional as F
 from torchkit import pytorch_utils as ptu
 from torchkit.core import PyTorchModule
 from torchkit.modules import LayerNorm
-from torchkit.snn_layer import LIF, STC_LIF, LIF_residue
+from torchkit.snn_layer import *
 from torchkit.snn_layer import ExpandTemporalDim
 
 relu_name = "relu"
@@ -101,7 +101,7 @@ class Mlp(PyTorchModule):
 
         # Expand and sum the spikes
         if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF) or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue):
+            if isinstance(self.hidden_activation[0], LIF) or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn):
                 T = self.hidden_activation[0].T
                 if len(input.shape) == 2: 
                     # output = self.hidden_activation.expand(output)
