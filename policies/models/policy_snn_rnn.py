@@ -188,14 +188,14 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
         # masked policy_loss
         actor_loss = (actor_loss * masks).sum() / num_valid
 
-        print("Actor loss time: ", time.time() - start)
+        # print("Actor loss time: ", time.time() - start)
 
         # update policy network
         start = time.time()
         self.actor_optim.zero_grad()
         actor_loss.backward()
         self.actor_optim.step()
-        print("Actor update time: ", time.time() - start)
+        # print("Actor update time: ", time.time() - start)
 
         outputs = {
             "qf1_loss": qf1_loss.item(),
