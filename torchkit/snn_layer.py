@@ -162,6 +162,138 @@ class LIF(nn.Module):
         return x
 
 
+class LIF_buffer(nn.Module):
+    def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
+        super(LIF_buffer, self).__init__()
+        self.act = ZIF.apply       
+        # self.thresh = nn.Parameter(torch.tensor([thresh], device='cuda'), requires_grad=False, )
+        self.thresh = torch.tensor([thresh], device='cuda', requires_grad=False)
+        self.tau = tau
+        self.gama = gama
+        self.expand = ExpandTemporalDim(T)
+        self.merge = MergeTemporalDim(T)
+        self.T = T
+        self.init_mem = 0.
+        self.current_mem = 0.
+        self.init_buffer = [torch.tensor(0.).cuda()] * T
+        self.current_buffer = [torch.tensor(0.).cuda()] * T
+
+    def forward(self, x, **kwargs):        
+        # thre = self.thresh.data        
+        mem = kwargs.get("mem", None)
+        store = kwargs.get("store", False)
+        buffer = kwargs.get("buffer", None)
+    
+        if mem is not None:
+            mem = mem
+            buffer = buffer
+        else:
+            mem = self.init_mem
+            buffer = self.init_buffer.copy()
+
+
+        if len(x.shape) == 3:
+
+
+            steps = x.shape[0] # [steps=200, BS=32 * T=4, embed]
+            episode_spike_pot = []
+            for step in range(steps):         
+
+                x_step = x[step, ...]
+
+                if store:
+                    # Store the observation 
+                    buffer.pop(0)
+
+                    # Rezise every elemnt of the buffer same size as observation
+                    for i in range(len(buffer)):
+                        buffer[i] = buffer[i].expand_as(x_step)
+
+                    buffer.append(x_step)
+
+                    # Form the new x
+                    x_step = torch.cat(buffer, dim=0)
+
+
+                x_step = self.expand(x_step) # [T * N, C, H, W] -> [T, N, C, H, W]
+
+                spike_pot = []
+                for t in range(self.T):
+                    
+                    mem = self.tau*mem + x_step[t, ...]
+
+                    # mem should be bigger than 0
+                    # mem = torch.clamp(mem, min=0)
+                    
+                    # print(mem[0])
+
+                    temp_spike = self.act(mem-self.thresh, self.gama)
+                    spike = temp_spike * self.thresh # spike [N, C, H, W]
+
+                    # print(spike[0])
+                    
+                    ### Soft reset ###
+                    # mem = mem - spike
+                    ### Hard reset ###
+                    mem = mem*(1.-spike)
+
+                    spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+
+                x_step = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]  
+                x_step = self.merge(x_step)  
+                episode_spike_pot.append(x_step)
+
+            x = torch.stack(episode_spike_pot, dim=0)    
+
+            # print(spike[0])              
+
+
+
+        else:
+            if store:
+                # Store the observation 
+                buffer.pop(0)
+
+                # Rezise every elemnt of the buffer same size as observation
+                for i in range(len(buffer)):
+                    buffer[i] = buffer[i].expand_as(x)
+
+                buffer.append(x)
+
+                # Form the new x
+                x = torch.cat(buffer, dim=0)
+            
+            x = self.expand(x) # [T * N, C, H, W] -> [T, N, C, H, W]
+            spike_pot = []
+            for t in range(self.T):
+                
+                mem = self.tau*mem + x[t, ...] 
+                
+                # mem should be bigger than 0
+                # mem = torch.clamp(mem, min=0)
+                
+                temp_spike = self.act(mem-self.thresh, self.gama)
+                spike = temp_spike * self.thresh # spike [N, C, H, W]
+
+                
+                
+                ### Soft reset ###
+                # mem = mem - spike
+                ### Hard reset ###
+                mem = mem*(1.-spike)
+
+                spike_pot.append(spike) # spike_pot[0].shape [N, C, H, W]
+
+            x = torch.stack(spike_pot,dim=0) # dimension [T, N, C, H, W]               
+            x = self.merge(x)  
+
+        # Store current state
+        self.current_mem = mem.detach().clone() 
+        if store:
+            self.current_buffer = [buf.detach().clone() for buf in buffer]
+
+        return x
+
 
 class LIF_residue(nn.Module):
     def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0, alpha=0.5):

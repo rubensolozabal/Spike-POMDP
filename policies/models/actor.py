@@ -166,15 +166,19 @@ class TanhGaussianPolicy(MarkovPolicyBase):
                     elif isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn):
                         spike_residue = hidden_state["spike_residue"][i]
                         h = self.hidden_activation[i](x = h, mem=mem, spike_residue=spike_residue)
+                    elif isinstance(self.hidden_activation[0], LIF_buffer) and i == 0:
+                        buffer = hidden_state["buffer"][i]
+                        h = self.hidden_activation[i](x = h, mem=mem, buffer=buffer, store = True)
                     else:
                         h = self.hidden_activation[i](x = h, mem=mem)
 
                     # h = self.hidden_activation[i](h, hidden_state[i])
                     # print("LIF time: ", time.time()-start)
                 else:
-                    start = time.time()
-                    h = self.hidden_activation[i](h)
-                    # print("LIF time: ", time.time()-start)
+                    if isinstance(self.hidden_activation[0], LIF_buffer) and i == 0:
+                        h = self.hidden_activation[i](x = h, store = True)
+                    else:
+                        h = self.hidden_activation[i](h)
             else:
                 h = self.hidden_activation(h)
 
@@ -183,14 +187,13 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
         # Expand and sum the spikes #r.s.o
         if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], LIF)  or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn):
+            if isinstance(self.hidden_activation[0], LIF)  or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn) or isinstance(self.hidden_activation[0], LIF_buffer):
                 T = self.hidden_activation[0].T
                 if len(obs.shape) == 2: 
                     # output = self.hidden_activation.expand(output)
                     h = ExpandTemporalDim(T)(h)
                     # Sum over axis 0
-                    # h = h.sum(axis=0)
-                    h = h[-1]
+                    h = h.sum(axis=0)
                 else:
                     h = ExpandTemporalDim(T,1)(h)
                     # h = h.sum(axis=1)

@@ -62,6 +62,9 @@ class Actor_SNN(nn.Module):
         elif isinstance(self.policy.hidden_activation[0], LIF_residue) or isinstance(self.policy.hidden_activation[0], LIF_residue_learn):
             spike_residue = [act.init_mem for act in self.policy.hidden_activation] 
             init_state = {"mem": mem, "spike_residue": spike_residue}
+        elif isinstance(self.policy.hidden_activation[0], LIF_buffer):
+            buffer = [act.init_buffer.copy() for act in self.policy.hidden_activation]
+            init_state = {"mem": mem, "buffer": buffer}
         else:
             init_state = {"mem": mem}
         
@@ -91,6 +94,9 @@ class Actor_SNN(nn.Module):
         elif isinstance(self.policy.hidden_activation[0], LIF_residue) or isinstance(self.policy.hidden_activation[0], LIF_residue_learn):
             spike_residue = [act.current_spike_residue for act in self.policy.hidden_activation]
             current_state = {"mem": mem, "spike_residue": spike_residue}
+        elif isinstance(self.policy.hidden_activation[0], LIF_buffer):
+            buffer = [act.current_buffer for act in self.policy.hidden_activation]
+            current_state = {"mem": mem, "buffer": buffer}
         else:
             current_state = {"mem": mem}
 
