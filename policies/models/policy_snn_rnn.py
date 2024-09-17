@@ -182,6 +182,9 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
             observs=observs,
             actions=actions,
             rewards=rewards,
+            _observs=_observs,
+            _actions=_actions,
+            _rewards=_rewards,
         )
 
 

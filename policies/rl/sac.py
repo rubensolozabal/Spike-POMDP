@@ -173,6 +173,9 @@ class SAC(RLAlgorithmBase):
         observs,
         actions=None,
         rewards=None,
+        _observs=None,
+        _actions=None,
+        _rewards=None,
     ):
         markov_critic = False
         if type_critic == "mlp":
@@ -194,7 +197,14 @@ class SAC(RLAlgorithmBase):
             start = time.time()
             q1 = critic[0](observs, new_actions)
             q2 = critic[1](observs, new_actions)    
-            # print("Critic time: ", time.time()-start)        
+            # print("Critic time: ", time.time()-start)     
+        elif type_actor == "snn" and type_critic == "rnn": 
+            q1, q2 = critic(
+                prev_actions=_actions,
+                rewards=_rewards,
+                observs=_observs,
+                current_actions=new_actions,
+            )   
         else:
             q1, q2 = critic(
                 prev_actions=actions,
@@ -206,9 +216,9 @@ class SAC(RLAlgorithmBase):
 
         policy_loss = -min_q_new_actions
         policy_loss += self.alpha_entropy * log_probs
-        if type_critic == "rnn":
-            if type_actor != "snn": #r.s.o , not perfect, the critic shoule receive _observs and _rewards
-                policy_loss = policy_loss[:-1]  # (T,B,1) remove the last obs
+        # if type_critic == "rnn":
+        #     if type_actor != "snn": #r.s.o 
+        #         policy_loss = policy_loss[:-1]  # (T,B,1) remove the last obs
 
         return policy_loss, log_probs
 
