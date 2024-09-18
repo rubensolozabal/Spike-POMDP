@@ -112,6 +112,8 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
         self.log_std = None
         self.std = std
+        # self.recs = 0.   #last added recurrency from output spikes to input
+        # self.fc_0 = nn.Linear(hidden_sizes[-1], 1) # weights to act on the output spikes to add them to the input
         if std is None:  # learn std
             last_hidden_size = self.input_size
             if len(hidden_sizes) > 0:
@@ -139,6 +141,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         """
         # Measure time
         h = self.preprocess(obs)
+        # h+=self.recs
 
         # Repear the input for LIF #r.s.o
         if isinstance(self.hidden_activation, list):
@@ -193,7 +196,8 @@ class TanhGaussianPolicy(MarkovPolicyBase):
                     # output = self.hidden_activation.expand(output)
                     h = ExpandTemporalDim(T)(h)
                     # Sum over axis 0
-                    h = h.sum(axis=0)
+                    # h = h.sum(axis=0)
+                    h = h[-1]
                 else:
                     h = ExpandTemporalDim(T,1)(h)
                     # h = h.sum(axis=1)
@@ -201,7 +205,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
 
 
         mean = self.last_fc(h)
-
+        # self.recs = self.fc_0(h)
 
 
         if self.std is None:

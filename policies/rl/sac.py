@@ -216,9 +216,9 @@ class SAC(RLAlgorithmBase):
 
         policy_loss = -min_q_new_actions
         policy_loss += self.alpha_entropy * log_probs
-        # if type_critic == "rnn":
-        #     if type_actor != "snn": #r.s.o 
-        #         policy_loss = policy_loss[:-1]  # (T,B,1) remove the last obs
+        if type_critic == "rnn":
+            if type_actor != "snn": #r.s.o 
+                policy_loss = policy_loss[:-1]  # (T,B,1) remove the last obs
 
         return policy_loss, log_probs
 

@@ -48,7 +48,7 @@ if FLAGS.algo is not None:
     v["policy"]["algo_name"] = FLAGS.algo
 
 seq_model, algo = v["policy"]["seq_model"], v["policy"]["algo_name"]
-assert seq_model in ["mlp", "lstm", "gru", "lstm-mlp", "gru-mlp", "snn", "snn-rnn"] #r.s.o
+assert seq_model in ["mlp", "lstm", "gru", "lstm-mlp", "gru-mlp", "snn", "snn-rnn", "snn-rnn-memory"] #r.s.o
 assert algo in ["td3", "sac", "sacd"]
 
 if FLAGS.automatic_entropy_tuning is not None:
@@ -176,5 +176,11 @@ learner = Learner(
 logger.log(
     f"total RAM usage: {psutil.Process().memory_info().rss / 1024 ** 3 :.2f} GB\n"
 )
+
+# Load LSTM
+# learner.load_model("logs/pomdp/Pendulum/V/sac_lstm/gamma-0.9/len--1/bs-32/freq-1.0/oar/09-16:16-45:47.93/save/agent_40_perf-223.588.pt")
+
+# Load SNN-RNN
+# learner.load_model("logs/pomdp/Pendulum/V/sac_snn-rnn/gamma-0.9/len--1/bs-32/freq-1.0/oar/09-12:21-15:45.02/save/agent_255_perf-562.146.pt")
 
 learner.train()

@@ -230,6 +230,10 @@ class Learner:
             agent_class = AGENT_CLASSES["Policy_SNN_RNN"]
             rnn_encoder_type = 'lstm'
             assert separate == True
+        elif seq_model == "snn-rnn-memory":
+            agent_class = AGENT_CLASSES["Policy_SNN_RNN_Memory"]
+            rnn_encoder_type = 'lstm'
+            assert separate == True
         elif "-mlp" in seq_model:
             agent_class = AGENT_CLASSES["Policy_RNN_MLP"]
             rnn_encoder_type = seq_model.split("-")[0]
@@ -470,19 +474,23 @@ class Learner:
                     # policy takes hidden state as input for memory-based actor,
                     # while takes obs for markov actor
                     if self.agent_arch == AGENT_ARCHS.Memory:
-                        (action, _, _, _), internal_state = self.agent.act(
+                        (action, mean, log_std, log_prob), internal_state = self.agent.act(
                             prev_internal_state=internal_state,
                             prev_action=action,
                             reward=reward,
                             obs=obs,
                             deterministic=False,
                         )
+
+                        # print("action", action, "mean", mean, "log_std", log_std, "log_prob", log_prob) # r.s.o
                     elif self.agent_arch == AGENT_ARCHS.SNN:
-                        (action, _, _, _), internal_state = self.agent.act(
+                        (action, mean, log_std, log_prob), internal_state = self.agent.act(
                             prev_internal_state=internal_state,
                             obs=obs,
                             deterministic=False,
                         )
+
+                        # print("action", action, "mean", mean, "log_std", log_std, "log_prob", log_prob) # r.s.o
                     else:
                         action, _, _, _ = self.agent.act(obs, deterministic=False)
 
