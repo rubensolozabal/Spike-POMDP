@@ -82,7 +82,7 @@ class Actor_RNN_SNN(nn.Module):
 
         ## 4. build policy
         self.policy = self.algo.build_actor(
-            input_size=self.rnn_hidden_size + observ_embedding_size,
+            input_size=3, #self.rnn_hidden_size + observ_embedding_size,
             action_dim=action_dim,
             hidden_sizes=policy_layers,
             hidden_activation=hidden_activation      #r.s.o
@@ -131,15 +131,17 @@ class Actor_RNN_SNN(nn.Module):
 
         ### 1. get hidden/belief states of the whole/sub trajectories, aligned with states
         # return the hidden states (T+1, B, dim)
-        hidden_states = self.get_hidden_states(
-            prev_actions=prev_actions, rewards=rewards, observs=observs
-        )
+        # hidden_states = self.get_hidden_states(
+        #     prev_actions=prev_actions, rewards=rewards, observs=observs
+        # )
 
         # 2. another branch for current obs
-        curr_embed = self._get_shortcut_obs_embedding(observs)  # (T+1, B, dim)
+        # curr_embed = self._get_shortcut_obs_embedding(observs)  # (T+1, B, dim)
 
         # 3. joint embed
-        joint_embeds = torch.cat((hidden_states, curr_embed), dim=-1)  # (T+1, B, dim)
+        # joint_embeds = torch.cat((hidden_states, curr_embed), dim=-1)  # (T+1, B, dim)
+
+        joint_embeds = torch.cat([observs, prev_actions, rewards], dim=-1)
 
         # 4. Actor
         return self.algo.forward_actor(actor=self.policy, observ=joint_embeds)
@@ -200,22 +202,26 @@ class Actor_RNN_SNN(nn.Module):
 
 
         # Decompose the internal_state
-        prev_rnn_state = prev_internal_state["rnn"]
+        # prev_rnn_state = prev_internal_state["rnn"]
         prev_snn_state = prev_internal_state["snn"]
 
-        hidden_state, current_rnn_state = self.get_hidden_states(
-            prev_actions=prev_action,
-            rewards=reward,
-            observs=obs,
-            initial_internal_state=prev_rnn_state,
-        )
+        # hidden_state, current_rnn_state = self.get_hidden_states(
+        #     prev_actions=prev_action,
+        #     rewards=reward,
+        #     observs=obs,
+        #     initial_internal_state=prev_rnn_state,
+        # )
         # 2. another branch for current obs
-        curr_embed = self._get_shortcut_obs_embedding(obs)  # (1, B, dim)
+        # curr_embed = self._get_shortcut_obs_embedding(obs)  # (1, B, dim)
 
         # 3. joint embed
-        joint_embeds = torch.cat((hidden_state, curr_embed), dim=-1)  # (1, B, dim)
+        # joint_embeds = torch.cat((hidden_state, curr_embed), dim=-1)  # (1, B, dim)
+
+        joint_embeds = torch.cat([obs, prev_action, reward], dim=-1)
         if joint_embeds.dim() == 3:
             joint_embeds = joint_embeds.squeeze(0)  # (B, dim)
+
+        
 
         # 4. Actor head, generate action tuple
         action_tuple = self.algo.select_action(
@@ -241,6 +247,7 @@ class Actor_RNN_SNN(nn.Module):
         else:
             current_snn_state = {"mem": mem}
 
-        current_internal_state = {"rnn": current_rnn_state, "snn": current_snn_state}
+        # current_internal_state = {"rnn": current_rnn_state, "snn": current_snn_state}
+        current_internal_state = {"snn": current_snn_state}
 
         return action_tuple, current_internal_state
