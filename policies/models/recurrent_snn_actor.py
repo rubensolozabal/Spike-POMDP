@@ -82,7 +82,7 @@ class Actor_RNN_SNN(nn.Module):
 
         ## 4. build policy
         self.policy = self.algo.build_actor(
-            input_size=3, #self.rnn_hidden_size + observ_embedding_size,
+            input_size=2, #self.rnn_hidden_size + observ_embedding_size,
             action_dim=action_dim,
             hidden_sizes=policy_layers,
             hidden_activation=hidden_activation      #r.s.o
@@ -141,7 +141,8 @@ class Actor_RNN_SNN(nn.Module):
         # 3. joint embed
         # joint_embeds = torch.cat((hidden_states, curr_embed), dim=-1)  # (T+1, B, dim)
 
-        joint_embeds = torch.cat([observs, prev_actions, rewards], dim=-1)
+        # joint_embeds = torch.cat([observs, prev_actions, rewards], dim=-1)
+        joint_embeds = torch.cat([observs, prev_actions], dim=-1)
 
         # 4. Actor
         return self.algo.forward_actor(actor=self.policy, observ=joint_embeds)
@@ -217,7 +218,8 @@ class Actor_RNN_SNN(nn.Module):
         # 3. joint embed
         # joint_embeds = torch.cat((hidden_state, curr_embed), dim=-1)  # (1, B, dim)
 
-        joint_embeds = torch.cat([obs, prev_action, reward], dim=-1)
+        # joint_embeds = torch.cat([obs, prev_action, reward], dim=-1)
+        joint_embeds = torch.cat([obs, prev_action], dim=-1)
         if joint_embeds.dim() == 3:
             joint_embeds = joint_embeds.squeeze(0)  # (B, dim)
 
