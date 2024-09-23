@@ -527,6 +527,40 @@ class LIF_residue_learn(nn.Module):
 
 
 
+class RELU_residue_learn(nn.Module):
+    def __init__(self):
+        super(RELU_residue_learn, self).__init__()
+      
+        self.init_mem = 0.
+        self.current_mem = 0.
+        self.W_a = nn.Linear(128, 128).cuda()
+        self.W_b = nn.Linear(128, 128).cuda()
+
+    def forward(self, x, **kwargs):        
+        # thre = self.thresh.data        
+        
+        previous_out = kwargs.get("mem", None)
+    
+        if previous_out is not None:
+            previous_out = previous_out
+            
+        else:
+            previous_out = self.init_mem
+
+        alpha = nn.Sigmoid()(self.W_a(x)) # This is extended version of above line
+        # alpha = nn.Sigmoid()(self.W_b(previous_out + x - x)) # This is extended version of above line
+        # alpha = nn.Sigmoid()(self.W_a(x)+self.W_b(previous_out + x - x)) # This is extended version of above line
+        
+        out = nn.ReLU()(x)
+     
+        out = alpha * previous_out + out
+
+        self.current_mem = out.detach().clone()
+
+        return out
+
+
+
 class STC_LIF(nn.Module):
     def __init__(self, T=0, thresh=1.0, tau=1., gama=1.0):
         super(STC_LIF, self).__init__()
