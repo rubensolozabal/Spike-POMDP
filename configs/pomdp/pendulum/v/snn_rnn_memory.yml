@@ -37,7 +37,7 @@ policy:
 
   dqn_layers: [128, 128]
   policy_layers: [128, 128]
-  hidden_activation:  [LIF_residue_learn(T=10), LIF_residue_learn(T=10)] #  ["LIF(T=10)", "LIF(T=10)"] #
+  hidden_activation: [LIF_residue_learn(T=1), LIF_residue_learn(T=1)] # ['LIF_residue(T=1, alpha=0.5)', 'LIF_residue(T=1, alpha=0.5)']  # #  ["LIF(T=10)", "LIF(T=10)"] #
   lr: 0.0003
   gamma: 0.9
   tau: 0.005

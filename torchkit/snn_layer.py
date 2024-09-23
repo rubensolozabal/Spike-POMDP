@@ -452,7 +452,11 @@ class LIF_residue_learn(nn.Module):
                     # mem = torch.clamp(mem, min=0)
                     
                     # print(mem[0])
+                    # Option 1
                     alpha = nn.Sigmoid()(self.W_a(x_step[t, ...]))
+                    # Option 2
+                    # alpha = nn.Sigmoid()(self.W_b(spike_residue + mem - mem)) 
+                    # Option 3
                     # alpha = nn.Sigmoid()(self.W_a(x_step[t, ...])+self.W_b(spike_residue + mem - mem)) # This is extended version of above line
 
                     temp_spike = self.act(mem-self.thresh, self.gama)
@@ -490,8 +494,14 @@ class LIF_residue_learn(nn.Module):
                 # mem should be bigger than 0
                 # mem = torch.clamp(mem, min=0)
 
+             
+                # Option 1
                 alpha = nn.Sigmoid()(self.W_a(x[t, ...]))
+                # Option 2
+                # alpha = nn.Sigmoid()(self.W_b(spike_residue + mem - mem)) 
+                # Option 3
                 # alpha = nn.Sigmoid()(self.W_a(x[t, ...])+self.W_b(spike_residue + mem - mem)) # This is extended version of above line
+
                
                 temp_spike = self.act(mem-self.thresh, self.gama)
                 spike = temp_spike * self.thresh # spike [N, C, H, W]
