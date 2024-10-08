@@ -14,10 +14,12 @@ from policies.rl import RL_ALGORITHMS
 import torchkit.pytorch_utils as ptu
 from copy import deepcopy
 from utils import helpers as utl
-
+from spikingjelly.activation_based import neuron
 from torchkit.snn_layer import *
 from policies.models.recurrent_snn_actor import Actor_RNN_SNN
 from policies.models.recurrent_critic import Critic_RNN
+from spikingjelly.activation_based import functional
+from spikingjelly.activation_based import neuron
 
 class ModelFreeOffPolicy_SNN_RNN(nn.Module):
 
@@ -66,6 +68,9 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
                 # f_call = torch.jit.script(f_call)
                 hidden_activation.append(f_call)
 
+                # if isinstance(f_call, neuron.IFNode):
+                #     # f_call.to('cuda')
+                #     f_call.backend = 'cupy'  # switch to the cupy backend
 
 
         self.critic = Critic_RNN(
@@ -111,6 +116,7 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
             hidden_activation,      #r.s.o
             rnn_num_layers,
             image_encoder=image_encoder_fn(),  # separate weight
+            T = kwargs["T"],
         )
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=lr)
@@ -234,6 +240,11 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
 
         ### 3. soft update
         self.soft_target_update()
+
+        # functional.reset_net(self.actor.policy)
+        for hidden_jelly_snn in self.actor.policy.hidden_activation:
+            hidden_jelly_snn.reset()
+        # Never forget to reset the network!
 
         ### 4. update others like alpha
         if log_probs is not None:

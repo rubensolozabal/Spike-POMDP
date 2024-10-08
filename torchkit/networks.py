@@ -36,6 +36,7 @@ class Mlp(PyTorchModule):
         b_init_value=0.1,
         layer_norm=False,
         layer_norm_kwargs=None,
+        **kwargs,
     ):
         self.save_init_params(locals())
         super().__init__()

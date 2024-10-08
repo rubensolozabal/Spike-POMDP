@@ -5,6 +5,8 @@ from utils import helpers as utl
 from torchkit.constant import *
 import torchkit.pytorch_utils as ptu
 from torchkit.snn_layer import *
+from spikingjelly.activation_based import functional
+from spikingjelly.activation_based import neuron
 
 class Actor_RNN_SNN(nn.Module):
     def __init__(
@@ -85,7 +87,8 @@ class Actor_RNN_SNN(nn.Module):
             input_size=2, #self.rnn_hidden_size + observ_embedding_size,
             action_dim=action_dim,
             hidden_sizes=policy_layers,
-            hidden_activation=hidden_activation      #r.s.o
+            hidden_activation=hidden_activation,      #r.s.o
+            T = kwargs["T"], #r.s.o
         )
 
     def _get_obs_embedding(self, observs):
@@ -162,19 +165,28 @@ class Actor_RNN_SNN(nn.Module):
             cell_state = ptu.zeros((self.num_layers, 1, self.rnn_hidden_size)).float()
             internal_state = (hidden_state, cell_state)
 
-        # SNN state
-        mem  = [act.init_mem for act in self.policy.hidden_activation]
 
         if isinstance(self.policy.hidden_activation[0], STC_LIF):
+            mem  = [act.init_mem for act in self.policy.hidden_activation]
             spike = [act.init_mem for act in self.policy.hidden_activation] 
             init_state = {"mem": mem, "spike": spike}
         elif isinstance(self.policy.hidden_activation[0], LIF_residue) or isinstance(self.policy.hidden_activation[0], LIF_residue_learn):
+            mem  = [act.init_mem for act in self.policy.hidden_activation]
             spike_residue = [act.init_mem for act in self.policy.hidden_activation] 
             init_state = {"mem": mem, "spike_residue": spike_residue}
         elif isinstance(self.policy.hidden_activation[0], LIF_buffer):
+            mem  = [act.init_mem for act in self.policy.hidden_activation]
             buffer = [act.init_buffer.copy() for act in self.policy.hidden_activation]
             init_state = {"mem": mem, "buffer": buffer}
+        elif isinstance(self.policy.hidden_activation[0], neuron.IFNode):
+            # functional.reset_net(self.actor.policy)
+            for hidden_jelly_snn in self.policy.hidden_activation:
+                hidden_jelly_snn.reset()
+            # Never forget to reset the network!
+            mem = [act.v for act in self.policy.hidden_activation]
+            init_state = {"mem": mem}
         else:
+            mem  = [act.init_mem for act in self.policy.hidden_activation]
             init_state = {"mem": mem}
 
         # Extend 
@@ -235,18 +247,24 @@ class Actor_RNN_SNN(nn.Module):
         )
 
         # Get internal state of SNN
-        mem = [act.current_mem for act in self.policy.hidden_activation]
-
+        
         if isinstance(self.policy.hidden_activation[0], STC_LIF):
+            mem = [act.current_mem for act in self.policy.hidden_activation]
             spike = [act.last_spike for act in self.policy.hidden_activation]
             current_snn_state = {"mem": mem, "spike": spike}
         elif isinstance(self.policy.hidden_activation[0], LIF_residue) or isinstance(self.policy.hidden_activation[0], LIF_residue_learn):
+            mem = [act.current_mem for act in self.policy.hidden_activation]
             spike_residue = [act.current_spike_residue for act in self.policy.hidden_activation]
             current_snn_state = {"mem": mem, "spike_residue": spike_residue}
         elif isinstance(self.policy.hidden_activation[0], LIF_buffer):
+            mem = [act.current_mem for act in self.policy.hidden_activation]
             buffer = [act.current_buffer for act in self.policy.hidden_activation]
             current_snn_state = {"mem": mem, "buffer": buffer}
+        elif isinstance(self.policy.hidden_activation[0], neuron.IFNode):
+            mem = [act.v for act in self.policy.hidden_activation]
+            current_snn_state = {"mem": mem}
         else:
+            mem = [act.current_mem for act in self.policy.hidden_activation]
             current_snn_state = {"mem": mem}
 
         # current_internal_state = {"rnn": current_rnn_state, "snn": current_snn_state}
