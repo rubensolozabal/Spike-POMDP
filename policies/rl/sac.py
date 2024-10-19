@@ -7,7 +7,7 @@ from torchkit.networks import FlattenMlp
 import torchkit.pytorch_utils as ptu
 import time
 import torch.nn.functional as F
-
+from spikingjelly.activation_based import neuron, functional, layer
 from torchkit.snn_layer import LIF, STC_LIF
 
 
@@ -80,6 +80,8 @@ class SAC(RLAlgorithmBase):
 
     @staticmethod
     def forward_actor(actor, observ):
+        functional.reset_net(actor)
+
         new_actions, _, _, log_probs = actor(observ, return_log_prob=True)
         return new_actions, log_probs  # (T+1, B, dim), (T+1, B, 1)
 

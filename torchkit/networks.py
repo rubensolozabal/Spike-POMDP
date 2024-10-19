@@ -13,6 +13,7 @@ from torchkit.core import PyTorchModule
 from torchkit.modules import LayerNorm
 from torchkit.snn_layer import *
 from torchkit.snn_layer import ExpandTemporalDim
+from spikingjelly.activation_based import neuron, surrogate, layer, functional
 
 relu_name = "relu"
 elu_name = "elu"
@@ -30,7 +31,6 @@ class Mlp(PyTorchModule):
         output_size,
         input_size,
         init_w=3e-3,
-        hidden_activation=F.relu,
         output_activation=ptu.identity,
         hidden_init=ptu.fanin_init,
         b_init_value=0.1,
@@ -47,7 +47,7 @@ class Mlp(PyTorchModule):
         self.input_size = input_size
         self.output_size = output_size
         self.hidden_sizes = hidden_sizes
-        self.hidden_activation = hidden_activation
+        # self.hidden_activation = hidden_activation
         self.output_activation = output_activation
         self.layer_norm = layer_norm
         self.fcs = []
@@ -70,6 +70,38 @@ class Mlp(PyTorchModule):
         self.last_fc = nn.Linear(in_size, output_size)
         self.last_fc.weight.data.uniform_(-init_w, init_w)
         self.last_fc.bias.data.uniform_(-init_w, init_w)
+
+
+        #r.s.o
+
+        # Get hidden activation - r.s.o
+        if callable(kwargs.get("hidden_activation")):
+            self.hidden_activation = kwargs.get("hidden_activation")
+        else:
+            self.hidden_activation = []
+            for i, value in enumerate(kwargs["hidden_activation"]):
+                f_call = eval(value)
+                self.hidden_activation.append(f_call)
+                
+
+                # if isinstance(f_call, neuron.IFNode):
+                #     # f_call.to('cuda')
+                #     f_call.backend = 'cupy'  # switch to the cupy backend
+
+
+                if isinstance(self.hidden_activation[i], neuron.IFNode) and kwargs.get("feedback_snn")[i] is True:
+
+                    self.hidden_activation[i] = layer.LinearRecurrentContainer(
+                                                neuron.IFNode(surrogate_function=surrogate.ATan(), detach_reset=False),
+                                                in_features=next_size, 
+                                                out_features=next_size,
+                                                bias=True
+                                            )
+                self.hidden_activation[i].step_mode= 'm'
+                device = 'cuda:0'
+                self.hidden_activation[i].to(device)
+                self.hidden_activation[i].backend = 'cupy' 
+                self.__setattr__("act{}".format(i), self.hidden_activation[i])
 
     def forward(self, input, hidden_state=None, return_preactivations=False):
         h = input

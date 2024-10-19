@@ -58,19 +58,19 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
         self.algo = RL_ALGORITHMS[algo_name](**kwargs[algo_name], action_dim=action_dim)
 
 
-        # Get hidden activation - r.s.o
-        if kwargs.get("hidden_activation") is None:
-            hidden_activation = F.relu
-        else:
-            hidden_activation = []
-            for i, value in enumerate(kwargs["hidden_activation"]):
-                f_call = eval(value)
-                # f_call = torch.jit.script(f_call)
-                hidden_activation.append(f_call)
+        # # Get hidden activation - r.s.o
+        # if kwargs.get("hidden_activation") is None:
+        #     hidden_activation = F.relu
+        # else:
+        #     hidden_activation = []
+        #     for i, value in enumerate(kwargs["hidden_activation"]):
+        #         f_call = eval(value)
+        #         # f_call = torch.jit.script(f_call)
+        #         hidden_activation.append(f_call)
 
-                # if isinstance(f_call, neuron.IFNode):
-                #     # f_call.to('cuda')
-                #     f_call.backend = 'cupy'  # switch to the cupy backend
+        #         # if isinstance(f_call, neuron.IFNode):
+        #         #     # f_call.to('cuda')
+        #         #     f_call.backend = 'cupy'  # switch to the cupy backend
 
 
         self.critic = Critic_RNN(
@@ -113,10 +113,10 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
             reward_embedding_size,
             rnn_hidden_size,
             policy_layers,
-            hidden_activation,      #r.s.o
+            # hidden_activation,      #r.s.o
             rnn_num_layers,
             image_encoder=image_encoder_fn(),  # separate weight
-            T = kwargs["T"],
+            **kwargs,
         )
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=lr)
@@ -241,10 +241,6 @@ class ModelFreeOffPolicy_SNN_RNN(nn.Module):
         ### 3. soft update
         self.soft_target_update()
 
-        # functional.reset_net(self.actor.policy)
-        for hidden_jelly_snn in self.actor.policy.hidden_activation:
-            hidden_jelly_snn.reset()
-        # Never forget to reset the network!
 
         ### 4. update others like alpha
         if log_probs is not None:

@@ -7,8 +7,7 @@ from torch.distributions import Categorical
 from torchkit.distributions import TanhNormal
 from torchkit.networks import Mlp
 
-from spikingjelly.activation_based import neuron, functional, layer
-
+from spikingjelly.activation_based import neuron, surrogate, layer, functional
 from torchkit.snn_layer import *
 import time
 LOG_SIG_MAX = 2
@@ -111,6 +110,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         super().__init__(
             obs_dim, action_dim, hidden_sizes, init_w, image_encoder, **kwargs
         )
+       
 
         self.log_std = None
         self.std = std
@@ -132,6 +132,7 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         if "T" in kwargs:
             self.T = kwargs["T"]
 
+
     def forward(
         self,
         obs,
@@ -149,71 +150,30 @@ class TanhGaussianPolicy(MarkovPolicyBase):
         h = self.preprocess(obs)
         # h+=self.recs
 
-        # Repear the input for LIF #r.s.o
-        if isinstance(self.hidden_activation, list):
-            if  isinstance(self.hidden_activation[0], neuron.IFNode) or isinstance(self.hidden_activation[0], LIF) or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn):
-                # T = self.hidden_activation[0].T
-                if len(obs.shape) == 2:   
-                    h = h.repeat(self.T,1)       #[BS*T, dim]  -> [T, BS, dim]
-                else:
-                    h = h.repeat(1,self.T,1)     #[episode, BS*T, dim] -> [episode, T, BS, dim]
-
 
         for i, fc in enumerate(self.fcs):
 
             h= fc(h) # r.s.o
 
             if isinstance(self.hidden_activation, list):    #r.s.o
-
                 # No internal mem load - jelly
-                if isinstance(self.hidden_activation[0], neuron.IFNode):
+                if isinstance(self.hidden_activation[0], neuron.IFNode) or isinstance(self.hidden_activation[0], layer.LinearRecurrentContainer):
 
                     if len(obs.shape) == 2:   #[BS*T, dim] = [BS, dim]
-                        self.hidden_activation[i].step_mode= 's'
+                        # self.hidden_activation[i].step_mode= 's'
+                        self.hidden_activation[i].step_mode= 'm'
+                        h = h.reshape(self.T, -1, h.shape[-1])  #[T, BS, dim]
                         h = self.hidden_activation[i](h)
+                        h = h.reshape(-1, h.shape[-1])  #[BS*T, dim]
                     else:                       #[episode, BS*T, dim] = [episode, BS, dim]
                         self.hidden_activation[i].step_mode= 'm'
                         h = self.hidden_activation[i](h)
 
-                # Internal mem load
-                elif hidden_state is not None:
-                    mem = hidden_state["mem"][i]
-                    if isinstance(self.hidden_activation[0], STC_LIF):
-                        spike = hidden_state["spike"][i]
-                        h = self.hidden_activation[i](x = h, mem=mem, spike = spike)
-                    elif isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn):
-                        spike_residue = hidden_state["spike_residue"][i]
-                        h = self.hidden_activation[i](x = h, mem=mem, spike_residue=spike_residue)
-                    elif isinstance(self.hidden_activation[0], LIF_buffer) and i == 0:
-                        buffer = hidden_state["buffer"][i]
-                        h = self.hidden_activation[i](x = h, mem=mem, buffer=buffer, store = True)
-                    else:
-                        h = self.hidden_activation[i](x = h, mem=mem)
-                else:
-                    if isinstance(self.hidden_activation[0], LIF_buffer) and i == 0:
-                        h = self.hidden_activation[i](x = h, store = True)
-                    else:
-                        h = self.hidden_activation[i](h)
             else:
                 h = self.hidden_activation(h)
 
             # h = self.hidden_activation(fc(h))          # original
 
-
-        # Expand and sum the spikes #r.s.o
-        if isinstance(self.hidden_activation, list):
-            if isinstance(self.hidden_activation[0], neuron.IFNode) or isinstance(self.hidden_activation[0], LIF)  or isinstance(self.hidden_activation[0], STC_LIF ) or isinstance(self.hidden_activation[0], LIF_residue) or isinstance(self.hidden_activation[0], LIF_residue_learn) or isinstance(self.hidden_activation[0], LIF_buffer):
-                # T = self.hidden_activation[0].T
-                if len(obs.shape) == 2: 
-                    # output = self.hidden_activation.expand(output)
-                    h = ExpandTemporalDim(self.T)(h)
-                    # Sum over axis 0
-                    # h = h.sum(axis=0)
-                    h = h[-1]
-                else:
-                    h = ExpandTemporalDim(self.T,1)(h)
-                    # h = h.sum(axis=1)
-                    h = h[:,-1]
 
 
         mean = self.last_fc(h)

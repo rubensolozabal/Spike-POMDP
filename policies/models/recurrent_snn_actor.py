@@ -5,8 +5,8 @@ from utils import helpers as utl
 from torchkit.constant import *
 import torchkit.pytorch_utils as ptu
 from torchkit.snn_layer import *
-from spikingjelly.activation_based import functional
-from spikingjelly.activation_based import neuron
+
+from spikingjelly.activation_based import neuron, layer, functional
 
 class Actor_RNN_SNN(nn.Module):
     def __init__(
@@ -20,7 +20,7 @@ class Actor_RNN_SNN(nn.Module):
         reward_embedding_size,
         rnn_hidden_size,
         policy_layers,
-        hidden_activation,
+        # hidden_activation,
         rnn_num_layers,
         image_encoder=None,
         **kwargs
@@ -87,8 +87,8 @@ class Actor_RNN_SNN(nn.Module):
             input_size=2, #self.rnn_hidden_size + observ_embedding_size,
             action_dim=action_dim,
             hidden_sizes=policy_layers,
-            hidden_activation=hidden_activation,      #r.s.o
-            T = kwargs["T"], #r.s.o
+            # hidden_activation=hidden_activation,      #r.s.o
+            **kwargs, #r.s.o
         )
 
     def _get_obs_embedding(self, observs):
@@ -147,7 +147,7 @@ class Actor_RNN_SNN(nn.Module):
         # joint_embeds = torch.cat([observs, prev_actions, rewards], dim=-1)
         joint_embeds = torch.cat([observs, prev_actions], dim=-1)
 
-        # 4. Actor
+        # 4. Actor       
         return self.algo.forward_actor(actor=self.policy, observ=joint_embeds)
 
     @torch.no_grad()
@@ -178,13 +178,11 @@ class Actor_RNN_SNN(nn.Module):
             mem  = [act.init_mem for act in self.policy.hidden_activation]
             buffer = [act.init_buffer.copy() for act in self.policy.hidden_activation]
             init_state = {"mem": mem, "buffer": buffer}
-        elif isinstance(self.policy.hidden_activation[0], neuron.IFNode):
-            # functional.reset_net(self.actor.policy)
-            for hidden_jelly_snn in self.policy.hidden_activation:
-                hidden_jelly_snn.reset()
+        elif isinstance(self.policy.hidden_activation[0], neuron.IFNode) or isinstance(self.policy.hidden_activation[0], layer.LinearRecurrentContainer):
+            functional.reset_net(self.policy)
             # Never forget to reset the network!
-            mem = [act.v for act in self.policy.hidden_activation]
-            init_state = {"mem": mem}
+            # mem = [act.v for act in self.policy.hidden_activation]
+            init_state = {"mem": None}
         else:
             mem  = [act.init_mem for act in self.policy.hidden_activation]
             init_state = {"mem": mem}
@@ -248,26 +246,26 @@ class Actor_RNN_SNN(nn.Module):
 
         # Get internal state of SNN
         
-        if isinstance(self.policy.hidden_activation[0], STC_LIF):
-            mem = [act.current_mem for act in self.policy.hidden_activation]
-            spike = [act.last_spike for act in self.policy.hidden_activation]
-            current_snn_state = {"mem": mem, "spike": spike}
-        elif isinstance(self.policy.hidden_activation[0], LIF_residue) or isinstance(self.policy.hidden_activation[0], LIF_residue_learn):
-            mem = [act.current_mem for act in self.policy.hidden_activation]
-            spike_residue = [act.current_spike_residue for act in self.policy.hidden_activation]
-            current_snn_state = {"mem": mem, "spike_residue": spike_residue}
-        elif isinstance(self.policy.hidden_activation[0], LIF_buffer):
-            mem = [act.current_mem for act in self.policy.hidden_activation]
-            buffer = [act.current_buffer for act in self.policy.hidden_activation]
-            current_snn_state = {"mem": mem, "buffer": buffer}
-        elif isinstance(self.policy.hidden_activation[0], neuron.IFNode):
-            mem = [act.v for act in self.policy.hidden_activation]
-            current_snn_state = {"mem": mem}
-        else:
-            mem = [act.current_mem for act in self.policy.hidden_activation]
-            current_snn_state = {"mem": mem}
+        # if isinstance(self.policy.hidden_activation[0], STC_LIF):
+        #     mem = [act.current_mem for act in self.policy.hidden_activation]
+        #     spike = [act.last_spike for act in self.policy.hidden_activation]
+        #     current_snn_state = {"mem": mem, "spike": spike}
+        # elif isinstance(self.policy.hidden_activation[0], LIF_residue) or isinstance(self.policy.hidden_activation[0], LIF_residue_learn):
+        #     mem = [act.current_mem for act in self.policy.hidden_activation]
+        #     spike_residue = [act.current_spike_residue for act in self.policy.hidden_activation]
+        #     current_snn_state = {"mem": mem, "spike_residue": spike_residue}
+        # elif isinstance(self.policy.hidden_activation[0], LIF_buffer):
+        #     mem = [act.current_mem for act in self.policy.hidden_activation]
+        #     buffer = [act.current_buffer for act in self.policy.hidden_activation]
+        #     current_snn_state = {"mem": mem, "buffer": buffer}
+        # elif isinstance(self.policy.hidden_activation[0], neuron.IFNode):
+        #     mem = [act.v for act in self.policy.hidden_activation]
+        #     current_snn_state = {"mem": mem}
+        # else:
+        #     mem = [act.current_mem for act in self.policy.hidden_activation]
+        #     current_snn_state = {"mem": mem}
 
         # current_internal_state = {"rnn": current_rnn_state, "snn": current_snn_state}
-        current_internal_state = {"snn": current_snn_state}
+        current_internal_state = {"snn": None}
 
         return action_tuple, current_internal_state
