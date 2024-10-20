@@ -97,11 +97,28 @@ class Mlp(PyTorchModule):
                                                 out_features=next_size,
                                                 bias=True
                                             )
+                    
+
                 self.hidden_activation[i].step_mode= 'm'
                 device = 'cuda:0'
                 self.hidden_activation[i].to(device)
                 self.hidden_activation[i].backend = 'cupy' 
                 self.__setattr__("act{}".format(i), self.hidden_activation[i])
+
+        # Filtering
+        if kwargs.get("synapse_filter") is not None:
+
+            self.synapse_filter = [None]*len(kwargs["synapse_filter"])
+            for i, value in enumerate(kwargs["synapse_filter"]):
+                if isinstance(self.hidden_activation[i], neuron.IFNode) and kwargs.get("synapse_filter")[i] is True:
+                    self.synapse_filter[i] = layer.SynapseFilter(tau=2., learnable=True)
+                    self.synapse_filter[i].step_mode= 'm'
+                    device = 'cuda:0'
+                    self.synapse_filter[i].to(device)
+                    # self.synapse_filter[i].backend = 'cupy' # Cupy does not work 
+                    self.__setattr__("filter{}".format(i), self.synapse_filter[i])
+
+
 
     def forward(self, input, hidden_state=None, return_preactivations=False):
         h = input

@@ -39,7 +39,10 @@ policy:
   policy_layers: [128, 128]
   T: 1
   feedback_snn: [False, False]
-  hidden_activation: ["neuron.IFNode()", "neuron.IFNode()"] #['LIF_residue(T=1, alpha=0.5)', 'LIF_residue(T=1, alpha=0.5)'] # [LIF_residue_learn(T=10), LIF_residue_learn(T=10)] #  ["LIF(T=10)", "LIF(T=10)"] #
+  synapse_filter: [True, False]
+  hidden_activation: ["neuron.IFNode()", "neuron.IFNode()"] 
+  # hidden_activation: ["neuron.IFNode(surrogate_function=surrogate.ATan())", "neuron.IFNode(surrogate_function=surrogate.ATan())"] # 
+  # hidden_activation: ['LIF_residue(T=1, alpha=0.5)', 'LIF_residue(T=1, alpha=0.5)'] # [LIF_residue_learn(T=10), LIF_residue_learn(T=10)] #  ["LIF(T=10)", "LIF(T=10)"] #
   lr: 0.0003
   gamma: 0.9
   tau: 0.005

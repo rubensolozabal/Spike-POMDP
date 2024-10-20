@@ -164,10 +164,19 @@ class TanhGaussianPolicy(MarkovPolicyBase):
                         self.hidden_activation[i].step_mode= 'm'
                         h = h.reshape(self.T, -1, h.shape[-1])  #[T, BS, dim]
                         h = self.hidden_activation[i](h)
+
+                        # Check for after spike filter 
+                        if self.synapse_filter[i] is not None:
+                            h = self.synapse_filter[i](h)
+
                         h = h.reshape(-1, h.shape[-1])  #[BS*T, dim]
                     else:                       #[episode, BS*T, dim] = [episode, BS, dim]
                         self.hidden_activation[i].step_mode= 'm'
                         h = self.hidden_activation[i](h)
+                        
+                        # Check for after spike filter 
+                        if self.synapse_filter[i] is not None:
+                            h = self.synapse_filter[i](h)
 
             else:
                 h = self.hidden_activation(h)
